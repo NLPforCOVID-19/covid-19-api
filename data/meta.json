@@ -1,0 +1,67 @@
+{
+  "title": "新型コロナウイルス情報サイト",
+  "classes": [
+    "感染状況",
+    "予防",
+    "検査",
+    "渡航制限・防疫",
+    "休校・オンライン授業",
+    "イベント中止",
+    "経済への影響",
+    "モノの不足",
+    "就労",
+    "都市封鎖",
+    "治療"
+  ],
+  "countries": [
+    {
+      "country": "jp",
+      "name": {
+        "ja": "日本",
+        "dataRepository": ["Japan"]
+      },
+      "language": "ja",
+      "representativeSiteUrl": "https://www.kantei.go.jp/jp/headline/kansensho/coronavirus.html"
+    },
+    {
+      "country": "us",
+      "name": {
+        "ja": "アメリカ",
+        "dataRepository": ["US"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "https://www.cdc.gov/coronavirus/index.html"
+    },
+    {
+      "country": "cn",
+      "name": {
+        "ja": "中国",
+        "dataRepository": ["China"]
+      },
+      "language": "zh",
+      "representativeSiteUrl": "http://www.gov.cn/fuwu/zt/yqfkzq/index.htm"
+    },
+    {
+      "country": "fr",
+      "name": {
+        "ja": "フランス",
+        "dataRepository": ["France"]
+      },
+      "language": "fr",
+      "representativeSiteUrl": "https://www.gouvernement.fr/info-coronavirus"
+    },
+    {
+      "country": "int",
+      "name": {
+        "ja": "その他国際",
+        "dataRepository": ["all"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019"
+    }
+  ],
+  "map": {
+    "url": "https://gisanddata.maps.arcgis.com/apps/Embed/index.html?webmap=14aa9e5660cf42b5b4b546dec6ceec7c&extent=77.3846,11.535,163.5174,52.8632&zoom=true&previewImage=false&scale=true&disable_scroll=false&theme=light",
+    "source": "Johns Hopkins University"
+  }
+}
