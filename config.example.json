@@ -1,0 +1,11 @@
+{
+  "activator": "<path-to-virtualenv>/bin/activate_this.py",
+  "database": {
+    "input_page_path": "<path-to-input-page-dir>/output.jsonl",
+    "host": "<host>",
+    "port": "<port> (NOTE: This value must be an integer. Remove double-quotes.)",
+    "db_name": "<db-name>",
+    "collection_name": "<collection-name>",
+    "log_path": "<path-to-log-dir>/update.log"
+  }
+}
