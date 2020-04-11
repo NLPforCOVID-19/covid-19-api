@@ -79,7 +79,10 @@ class HandlingPages:
         if class_ and country:
             if class_ != 'all':
                 filters.append({f'page.classes.{class_}': 1})
-            filters.append({'page.country': country})
+            countries = [country]
+            if country == 'int':
+                countries.append('eu')
+            filters.append({'page.country': {'$in': countries}})
             result = self.collection.find(
                 projection=projection,
                 filter={'$and': filters},
