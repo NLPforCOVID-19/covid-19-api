@@ -33,6 +33,15 @@
       "representativeSiteUrl": "https://www.cdc.gov/coronavirus/index.html"
     },
     {
+      "country": "fr",
+      "name": {
+        "ja": "フランス",
+        "dataRepository": ["France"]
+      },
+      "language": "fr",
+      "representativeSiteUrl": "https://www.gouvernement.fr/info-coronavirus"
+    },
+    {
       "country": "cn",
       "name": {
         "ja": "中国",
@@ -42,13 +51,13 @@
       "representativeSiteUrl": "http://www.gov.cn/fuwu/zt/yqfkzq/index.htm"
     },
     {
-      "country": "fr",
+      "country": "kr",
       "name": {
-        "ja": "フランス",
-        "dataRepository": ["France"]
+        "ja": "韓国",
+        "dataRepository": ["Korea, South"]
       },
-      "language": "fr",
-      "representativeSiteUrl": "https://www.gouvernement.fr/info-coronavirus"
+      "language": "ko",
+      "representativeSiteUrl": "#"
     },
     {
       "country": "int",
