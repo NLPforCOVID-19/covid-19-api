@@ -7,6 +7,22 @@ from typing import List, Dict
 from util import load_config
 from pymongo import MongoClient, DESCENDING
 
+TAGS = {
+    'COVID-19関連': -1,
+    'usefullness': -1,
+    'clarity': -1,
+    'topic': {
+        '感染状況': -1,
+        '予防・緊急事態宣言': -1,
+        '症状・治療・検査など医療情報': -1,
+        '経済・福祉政策': -1,
+        '休校・オンライン授業': -1,
+        '芸能・スポーツ': -1,
+        'デマに関する記事': -1,
+        'その他': -1
+        }
+    }
+
 
 class HandlingPages:
     def __init__(self, host: str, port: int, db_name: str, collection_name: str) -> None:
@@ -20,6 +36,7 @@ class HandlingPages:
         Update its information if the URL of the page already exists.
         """
         for document in documents:
+            document['tags'] = TAGS
             self.collection.update_one(
                 {'page.url': document['url']},
                 {'$set': {'page': document}},

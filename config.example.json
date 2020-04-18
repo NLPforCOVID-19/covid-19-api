@@ -7,5 +7,8 @@
     "db_name": "<db-name>",
     "collection_name": "<collection-name>",
     "log_path": "<path-to-log-dir>/update.log"
+  },
+  "crowdsourcing": {
+    "result_dir": "<path-to-result-dir>"
   }
 }
