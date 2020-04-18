@@ -9,7 +9,7 @@ from pymongo import MongoClient, DESCENDING
 
 TAGS = {
     'COVID-19関連': -1,
-    'usefullness': -1,
+    'usefulness': -1,
     'clarity': -1,
     'topic': {
         '感染状況': -1,
