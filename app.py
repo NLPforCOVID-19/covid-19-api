@@ -54,7 +54,7 @@ def classes(class_=None, country=None):
         limit = int(limit)
     else:
         raise InvalidUsage('Parameters `start` and `limit` must be integers')
-    filtered_pages = mongo.get_filtered_pages(class_=class_, country=country, start=start, limit=limit)
+    filtered_pages = mongo.get_filtered_pages(topic=class_, country=country, start=start, limit=limit)
     return jsonify(filtered_pages)
 
 
