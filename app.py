@@ -14,10 +14,12 @@ app = Flask(__name__)
 CORS(app)
 
 cfg = load_config()
-mongo = HandlingPages(host=cfg['database']['host'],
-                      port=cfg['database']['port'],
-                      db_name=cfg['database']['db_name'],
-                      collection_name=cfg['database']['collection_name'])
+mongo = HandlingPages(
+    host=cfg['database']['host'],
+    port=cfg['database']['port'],
+    db_name=cfg['database']['db_name'],
+    collection_name=cfg['database']['collection_name']
+)
 
 
 class InvalidUsage(Exception):
@@ -45,7 +47,6 @@ def index():
 @app.route('/classes/<class_>')
 @app.route('/classes/<class_>/<country>')
 def classes(class_=None, country=None):
-    # load GET parameters
     start = request.args.get("start", "0")  # NOTE: set the default value as a `str` object
     limit = request.args.get("limit", "10")  # NOTE: set the default value as a `str` object
     if start.isdecimal() and limit.isdecimal():
@@ -53,7 +54,6 @@ def classes(class_=None, country=None):
         limit = int(limit)
     else:
         raise InvalidUsage('Parameters `start` and `limit` must be integers')
-
     filtered_pages = mongo.get_filtered_pages(class_=class_, country=country, start=start, limit=limit)
     return jsonify(filtered_pages)
 
