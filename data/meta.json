@@ -1,17 +1,12 @@
 {
-  "title": "新型コロナウイルス情報サイト",
-  "classes": [
+  "tags": [
     "感染状況",
-    "予防",
-    "検査",
-    "渡航制限・防疫",
+    "予防・緊急事態宣言",
+    "症状・治療・検査など医療情報",
+    "経済・福祉政策",
     "休校・オンライン授業",
-    "イベント中止",
-    "経済への影響",
-    "モノの不足",
-    "就労",
-    "都市封鎖",
-    "治療"
+    "芸能・スポーツ",
+    "その他"
   ],
   "countries": [
     {
@@ -95,9 +90,5 @@
       "language": "en",
       "representativeSiteUrl": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019"
     }
-  ],
-  "map": {
-    "url": "https://gisanddata.maps.arcgis.com/apps/Embed/index.html?webmap=14aa9e5660cf42b5b4b546dec6ceec7c&zoom=true&previewImage=false&scale=true&disable_scroll=false&theme=light",
-    "source": "Johns Hopkins University"
-  }
+  ]
 }
