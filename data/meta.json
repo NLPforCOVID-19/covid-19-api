@@ -24,6 +24,15 @@
       "representativeSiteUrl": "https://www.kantei.go.jp/jp/headline/kansensho/coronavirus.html"
     },
     {
+      "country": "cn",
+      "name": {
+        "ja": "中国",
+        "dataRepository": ["China"]
+      },
+      "language": "zh",
+      "representativeSiteUrl": "http://www.gov.cn/fuwu/zt/yqfkzq/index.htm"
+    },
+    {
       "country": "us",
       "name": {
         "ja": "アメリカ",
@@ -42,13 +51,22 @@
       "representativeSiteUrl": "https://www.gouvernement.fr/info-coronavirus"
     },
     {
-      "country": "cn",
+      "country": "es",
       "name": {
-        "ja": "中国",
-        "dataRepository": ["China"]
+        "ja": "スペイン",
+        "dataRepository": ["Spain"]
       },
-      "language": "zh",
-      "representativeSiteUrl": "http://www.gov.cn/fuwu/zt/yqfkzq/index.htm"
+      "language": "es",
+      "representativeSiteUrl": "#"
+    },
+    {
+      "country": "de",
+      "name": {
+        "ja": "ドイツ",
+        "dataRepository": ["Germany"]
+      },
+      "language": "de",
+      "representativeSiteUrl": "#"
     },
     {
       "country": "kr",
@@ -58,6 +76,15 @@
       },
       "language": "ko",
       "representativeSiteUrl": "https://www.cdc.go.kr/cdc_eng/"
+    },
+    {
+      "country": "in",
+      "name": {
+        "ja": "インド",
+        "dataRepository": ["India"]
+      },
+      "language": "hi",
+      "representativeSiteUrl": "#"
     },
     {
       "country": "int",
