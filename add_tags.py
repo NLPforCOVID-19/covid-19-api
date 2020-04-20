@@ -4,6 +4,8 @@ import glob
 from util import load_config
 from database import HandlingPages
 
+TAGS = ['is_about_COVID-19', 'is_useful', 'is_clear', 'is_about_false_rumor']
+
 
 def main():
     cfg = load_config()
@@ -16,9 +18,13 @@ def main():
             json_tags = [json.loads(line.strip()) for line in f]
 
         for json_tag in json_tags:
+            page = mongo.collection.find_one({'page.url': json_tag['url']})['page']
+            for tag in TAGS:
+                page[tag] = json_tag['tags'][tag]
+            page['topics'] = json_tag['tags']['topics']
             mongo.collection.update_one(
                 {'page.url': json_tag['url']},
-                {'$set': {'page.tags': json_tag['tags']}}
+                {'$set': {'page': page}}
             )
 
 
