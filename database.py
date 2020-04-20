@@ -7,21 +7,14 @@ from typing import List, Dict
 from util import load_config
 from pymongo import MongoClient, DESCENDING
 
-TAGS = {
-    'COVID-19関連': -1,
-    'usefulness': -1,
-    'clarity': -1,
-    'topic': {
-        '感染状況': -1,
-        '予防・緊急事態宣言': -1,
-        '症状・治療・検査など医療情報': -1,
-        '経済・福祉政策': -1,
-        '休校・オンライン授業': -1,
-        '芸能・スポーツ': -1,
-        'デマに関する記事': -1,
-        'その他': -1
-    }
+TOPIC_TO_CLASSES = {
+    '感染状況': ['感染状況'],
+    '予防・緊急事態宣言': ['予防', '都市封鎖', '渡航制限・防疫', 'イベント中止'],
+    '症状・治療・検査など医療情報': ['検査', '治療'],
+    '経済・福祉政策': ['経済への影響', '就労', 'モノの不足'],
+    '休校・オンライン授業': ['休校・オンライン授業'],
 }
+ADD_CROWDSOURCING_KEYS = ['is_useful', 'is_clear', 'is_about_false_rumor']
 
 
 class HandlingPages:
@@ -33,7 +26,17 @@ class HandlingPages:
     def upsert_pages(self, documents: List[dict]) -> None:
         """Add pages to the database. At the same time, update pages that have already been registered."""
         for document in documents:
-            document['tags'] = TAGS
+            document['is_about_COVID-19'] = 1 if document['classes']['COVID-19関連'] else 0
+            for add_crowdsourcing_key in ADD_CROWDSOURCING_KEYS:
+                document[add_crowdsourcing_key] = -1
+
+            document['topics'] = []
+            for topic, classes in TOPIC_TO_CLASSES.items():
+                for class_ in classes:
+                    if document['classes'][class_]:
+                        snippet = document["snippets"][class_][0] if document["snippets"][class_] else ''
+                        document['topics'].append({'name': topic, 'snippet': snippet})
+            del document['classes']
             self.collection.update_one(
                 {'page.url': document['url']},
                 {'$set': {'page': document}},
@@ -41,30 +44,23 @@ class HandlingPages:
             )
 
     @staticmethod
-    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+    def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Slice a list of filtered pages."""
-        def extract_first_snippet(page: dict) -> dict:
-            snippets = {class_: sentences[:1] for class_, sentences in page["snippets"].items()}
-            page["snippets"] = snippets
-            return page
-
         if start < len(filtered_pages):
             sliced_pages = filtered_pages[start:start + limit]
-            sliced_pages = [extract_first_snippet(page) for page in sliced_pages]
-
             return sliced_pages
         else:
             return []
 
     @staticmethod
-    def _reshape_pages_to_class_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
-        """Given a list of pages, reshape it into a dictionary where each key corresponds to a class."""
-        class_pages_map = collections.defaultdict(list)
+    def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
+        """Given a list of topics, reshape it into a dictionary where each key corresponds to a topic."""
+        topic_pages_map = collections.defaultdict(list)
         for page in pages:
-            for page_class, has_class in page["classes"].items():
-                if has_class and page_class != 'COVID-19関連':
-                    class_pages_map[page_class].append(page)
-        return class_pages_map
+            for page_topic, has_topic in page["topics"].items():
+                if has_topic:
+                    topic_pages_map[page_topic].append(page)
+        return topic_pages_map
 
     @staticmethod
     def _reshape_pages_to_country_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
@@ -75,10 +71,10 @@ class HandlingPages:
             country_pages_map[page_country].append(page)
         return country_pages_map
 
-    def get_filtered_pages(self, class_: str, country: str, start: int, limit: int) -> List[dict]:
+    def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         """Fetch pages based on given GET parameters."""
         filters = [
-            {'page.classes.COVID-19関連': 1}
+            {'page.is_about_COVID-19': 1}
         ]
         projection = {
             '_id': 0,
@@ -88,14 +84,14 @@ class HandlingPages:
             'page.ja_translated.xml_file': 0,
             'page.ja_translated.xml_timestamp': 0,
             'page.orig.file': 0,
-            'page.snippets.COVID-19関連': 0
+            'page.snippets': 0
         }
         sort_ = [
             ('page.orig.timestamp', DESCENDING)
         ]
-        if class_ and country:
-            if class_ != 'all':
-                filters.append({f'page.classes.{class_}': 1})
+        if topic and country:
+            if topic != 'all':
+                filters.append({'page.topics.name': topic})
             countries = [country]
             if country == 'int':
                 countries.append('eu')
@@ -106,19 +102,19 @@ class HandlingPages:
                 sort=sort_
             )
             reshaped_pages = [doc['page'] for doc in result]
-            post_processed_pages = self._postprocess_pages(reshaped_pages, start, limit)
-        elif class_:
-            if class_ != 'all':
-                filters.append({f'page.classes.{class_}': 1})
+            sliced_pages = self._slice_pages(reshaped_pages, start, limit)
+        elif topic:
+            if topic != 'all':
+                filters.append({'page.topics.name': topic})
             result = self.collection.find(
                 projection=projection,
                 filter={'$and': filters},
                 sort=sort_
             )
             reshaped_pages = self._reshape_pages_to_country_pages_map([doc['page'] for doc in result])
-            post_processed_pages = {
-                _class: self._postprocess_pages(_pages, start, limit)
-                for _class, _pages in reshaped_pages.items()
+            sliced_pages = {
+                _topic: self._slice_pages(_pages, start, limit)
+                for _topic, _pages in reshaped_pages.items()
             }
         else:
             result = self.collection.find(
@@ -127,17 +123,17 @@ class HandlingPages:
                 sort=sort_
             )
             reshaped_pages = {
-                _class: self._reshape_pages_to_country_pages_map(_pages)
-                for _class, _pages in self._reshape_pages_to_class_pages_map([doc['page'] for doc in result]).items()
+                _topic: self._reshape_pages_to_country_pages_map(_pages)
+                for _topic, _pages in self._reshape_pages_to_topic_pages_map([doc['page'] for doc in result]).items()
             }
-            post_processed_pages = {
-                _class: {
-                    _country: self._postprocess_pages(_country_pages, start, limit)
+            sliced_pages = {
+                _topic: {
+                    _country: self._slice_pages(_country_pages, start, limit)
                     for _country, _country_pages in _class_pages.items()
                 }
-                for _class, _class_pages in reshaped_pages.items()
+                for _topic, _class_pages in reshaped_pages.items()
             }
-        return post_processed_pages
+        return sliced_pages
 
 
 def main():
