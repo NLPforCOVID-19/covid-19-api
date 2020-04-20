@@ -15,11 +15,11 @@ def main():
         with open(input_path) as f:
             json_tags = [json.loads(line.strip()) for line in f]
 
-    for json_tag in json_tags:
-        mongo.collection.update_one(
-            {'page.url': json_tag['url']},
-            {'$set': {'page.tags': json_tag['tags']}}
-        )
+        for json_tag in json_tags:
+            mongo.collection.update_one(
+                {'page.url': json_tag['url']},
+                {'$set': {'page.tags': json_tag['tags']}}
+            )
 
 
 if __name__ == '__main__':
