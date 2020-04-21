@@ -65,20 +65,19 @@ class HandlingPages:
     @staticmethod
     def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
         """Given a list of topics, reshape it into a dictionary where each key corresponds to a topic."""
-        topic_pages_map = collections.defaultdict(list)
+        topic_pages_map = dict()
         for page in pages:
-            for page_topic, has_topic in page["topics"].items():
-                if has_topic:
-                    topic_pages_map[page_topic].append(page)
+            for page_topic in page["topics"]:
+                topic_pages_map.setdefault(page_topic, []).append(page)
         return topic_pages_map
 
     @staticmethod
     def _reshape_pages_to_country_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
         """Given a list of pages, reshape it into a dictionary where each key corresponds to a country."""
-        country_pages_map = collections.defaultdict(list)
+        country_pages_map = dict()
         for page in pages:
             page_country = page["country"]
-            country_pages_map[page_country].append(page)
+            country_pages_map.setdefault(page_country, []).append(page)
         return country_pages_map
 
     def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
