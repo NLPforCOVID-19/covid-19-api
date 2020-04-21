@@ -14,7 +14,6 @@ TOPIC_TO_CLASSES = {
     "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
     "休校・オンライン授業": ["休校・オンライン授業"],
 }
-CROWDSOURCING_TOPICS = ["芸能・スポーツ", "その他"]
 CROWDSOURCING_KEYS = ["is_useful", "is_clear", "is_about_false_rumor"]
 
 
@@ -31,11 +30,20 @@ class HandlingPages:
         for crowdsourcing_key in CROWDSOURCING_KEYS:
             document[crowdsourcing_key] = -1
 
-        document["topics"] = dict()
+        document["topics"] = []
+        snippets = {}
         for topic, classes in TOPIC_TO_CLASSES.items():
-            document["topics"][topic] = 1 if any([document["classes"][class_] for class_ in classes]) else 0
-        for crowdsourcing_topic in CROWDSOURCING_TOPICS:
-            document["topics"][crowdsourcing_topic] = -1
+            has_topic = False
+            snippet_list = []
+            for class_ in classes:
+                if document["classes"][class_]:
+                    has_topic = True
+                    snippet_list += document["snippets"][class_]
+            if has_topic:
+                document["topics"].append(topic)
+                snippet_list = [snippet for snippet in snippet_list if snippet]
+                snippets[topic] = snippet_list[0] if snippet_list else ''
+        document["snippets"] = snippets
 
         del document["classes"]
 
@@ -46,16 +54,10 @@ class HandlingPages:
         )
 
     @staticmethod
-    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+    def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Slice a list of filtered pages."""
-        def extract_first_snippet(page: dict) -> dict:
-            snippets = {class_: sentences[:1] for class_, sentences in page["snippets"].items()}
-            page["snippets"] = snippets
-            return page
-
         if start < len(filtered_pages):
             sliced_pages = filtered_pages[start:start + limit]
-            sliced_pages = [extract_first_snippet(page) for page in sliced_pages]
             return sliced_pages
         else:
             return []
@@ -92,14 +94,13 @@ class HandlingPages:
             "page.ja_translated.xml_file": 0,
             "page.ja_translated.xml_timestamp": 0,
             "page.orig.file": 0,
-            "page.snippets.COVID-19関連": 0
         }
         sort_ = [
             ("page.orig.timestamp", DESCENDING)
         ]
         if topic and country:
             if topic != "all":
-                filters.append({f"page.topics.{topic}": 1})
+                filters.append({"page.topics": {"$all": [topic]}})
             countries = [country]
             if country == "int":
                 countries.append("eu")
@@ -110,18 +111,18 @@ class HandlingPages:
                 sort=sort_
             )
             reshaped_pages = [doc["page"] for doc in result]
-            post_processed_pages = self._postprocess_pages(reshaped_pages, start, limit)
+            sliced_pages = self._slice_pages(reshaped_pages, start, limit)
         elif topic:
             if topic != "all":
-                filters.append({f"page.topics.{topic}": 1})
+                filters.append({"page.topics": {"$all": [topic]}})
             result = self.collection.find(
                 projection=projection,
                 filter={"$and": filters},
                 sort=sort_
             )
             reshaped_pages = self._reshape_pages_to_country_pages_map([doc["page"] for doc in result])
-            post_processed_pages = {
-                _topic: self._postprocess_pages(_pages, start, limit)
+            sliced_pages = {
+                _topic: self._slice_pages(_pages, start, limit)
                 for _topic, _pages in reshaped_pages.items()
             }
         else:
@@ -134,14 +135,14 @@ class HandlingPages:
                 _topic: self._reshape_pages_to_country_pages_map(_pages)
                 for _topic, _pages in self._reshape_pages_to_topic_pages_map([doc["page"] for doc in result]).items()
             }
-            post_processed_pages = {
+            sliced_pages = {
                 _topic: {
-                    _country: self._postprocess_pages(_country_pages, start, limit)
+                    _country: self._slice_pages(_country_pages, start, limit)
                     for _country, _country_pages in _class_pages.items()
                 }
                 for _topic, _class_pages in reshaped_pages.items()
             }
-        return post_processed_pages
+        return sliced_pages
 
 
 def main():
