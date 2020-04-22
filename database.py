@@ -1,171 +1,210 @@
+import os
 import json
-import collections
+import glob
 import logging
+import copy
 
 from typing import List, Dict
 
 from util import load_config
 from pymongo import MongoClient, DESCENDING
 
-TOPIC_TO_CLASSES = {
-    '感染状況': ['感染状況'],
-    '予防・緊急事態宣言': ['予防', '都市封鎖', '渡航制限・防疫', 'イベント中止'],
-    '症状・治療・検査など医療情報': ['検査', '治療'],
-    '経済・福祉政策': ['経済への影響', '就労', 'モノの不足'],
-    '休校・オンライン授業': ['休校・オンライン授業'],
+TOPIC_CLASSES_MAP = {
+    "感染状況": ["感染状況"],
+    "予防・緊急事態宣言": ["予防", "都市封鎖", "渡航制限・防疫", "イベント中止"],
+    "症状・治療・検査など医療情報": ["検査", "治療"],
+    "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
+    "休校・オンライン授業": ["休校・オンライン授業"],
 }
-ADD_CROWDSOURCING_KEYS = ['is_useful', 'is_clear', 'is_about_false_rumor']
-ADD_TOPICS = ['芸能・スポーツ', 'その他']
+TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
 
 
-class HandlingPages:
+class DBHandler:
     def __init__(self, host: str, port: int, db_name: str, collection_name: str) -> None:
         self.client = MongoClient(host=host, port=port)
         self.db = self.client[db_name]
         self.collection = self.db.get_collection(name=collection_name)
 
-    def upsert_pages(self, documents: List[dict]) -> None:
-        """Add pages to the database. At the same time, update pages that have already been registered."""
-        for document in documents:
-            document['is_about_COVID-19'] = 1 if document['classes']['COVID-19関連'] else 0
-            for add_crowdsourcing_key in ADD_CROWDSOURCING_KEYS:
-                document[add_crowdsourcing_key] = -1
+    def upsert_page(self, document: dict) -> None:
+        """Add a page to the database. If the page has already been registered, update the page."""
+        def convert_classe_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
+            topics = []
+            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
+                if any(class_flag_map[class_] for class_ in classes_about_topic):
+                    topics.append(topic)
+            return topics
 
-            document['topics'] = dict()
-            for topic, classes in TOPIC_TO_CLASSES.items():
-                document['topics'][topic] = 1 if any([document['classes'][class_] for class_ in classes]) else 0
-            for add_topic in ADD_TOPICS:
-                document['topics'][add_topic] = -1
-            del document['classes']
-            self.collection.update_one(
-                {'page.url': document['url']},
-                {'$set': {'page': document}},
-                upsert=True
-            )
+        def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
+            reshaped = {}
+            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
+                snippets_about_topic = []
+                for class_ in classes_about_topic:
+                    snippets_about_topic += snippets.get(class_, [])
+                if snippets_about_topic:
+                    reshaped[topic] = snippets_about_topic[0]
+            return reshaped
+
+        is_about_covid_19 = 1 if document["classes"]["COVID-19関連"] else 0
+        country = document["country"]
+        orig = {
+            "title": document["orig"]["title"],
+            "timestamp": document["orig"]["timestamp"],
+        }
+        ja_translated = {
+            "title": document["ja_translated"]["title"],
+            "timestamp": document["ja_translated"]["timestamp"],
+        }
+        url = document["url"]
+        topics = convert_classe_flag_map_to_topics(document["classes"])
+        snippets = reshape_snippets(document["snippets"])
+        is_useful = -1
+        is_clear = -1
+        is_about_false_rumor = -1
+        document_ = {
+            "country": country,
+            "orig": orig,
+            "ja_translated": ja_translated,
+            "url": url,
+            "topics": topics,
+            "snippets": snippets,
+            "is_about_COVID-19": is_about_covid_19,
+            "is_useful": is_useful,
+            "is_clear": is_clear,
+            "is_about_false_rumor": is_about_false_rumor
+        }
+        self.collection.update_one(
+            {"page.url": url},
+            {"$set": {"page": document_}},
+            upsert=True
+        )
 
     @staticmethod
-    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
-        """Slice a list of filtered pages."""
-        def extract_first_snippet(page: dict) -> dict:
-            snippets = {class_: sentences[:1] for class_, sentences in page["snippets"].items()}
-            page["snippets"] = snippets
-            return page
+    def _reshape_page(page: dict) -> dict:
+        copied_page = copy.deepcopy(page)
+        copied_page["topics"] = [
+            {"name": topic, "snippet": copied_page["snippets"].get(topic, "")}
+            for topic in copied_page["topics"]
+        ]
+        del copied_page["snippets"]
+        return copied_page
 
-        if start < len(filtered_pages):
-            sliced_pages = filtered_pages[start:start + limit]
-            sliced_pages = [extract_first_snippet(page) for page in sliced_pages]
-            return sliced_pages
-        else:
-            return []
+    @staticmethod
+    def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+        """Slice a list of filtered pages."""
+        return filtered_pages[start:start + limit] if start < len(filtered_pages) else []
 
     @staticmethod
     def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
         """Given a list of topics, reshape it into a dictionary where each key corresponds to a topic."""
-        topic_pages_map = collections.defaultdict(list)
+        topic_pages_map = dict()
         for page in pages:
-            for page_topic, has_topic in page["topics"].items():
-                if has_topic:
-                    topic_pages_map[page_topic].append(page)
+            for page_topic in page["topics"]:
+                topic_pages_map.setdefault(page_topic, []).append(page)
         return topic_pages_map
 
     @staticmethod
     def _reshape_pages_to_country_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
         """Given a list of pages, reshape it into a dictionary where each key corresponds to a country."""
-        country_pages_map = collections.defaultdict(list)
+        country_pages_map = dict()
         for page in pages:
             page_country = page["country"]
-            country_pages_map[page_country].append(page)
+            country_pages_map.setdefault(page_country, []).append(page)
         return country_pages_map
 
     def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         """Fetch pages based on given GET parameters."""
-        filters = [
-            {'page.is_about_COVID-19': 1}
-        ]
-        projection = {
-            '_id': 0,
-            'page.rawsentences': 0,
-            'page.domain': 0,
-            'page.ja_translated.file': 0,
-            'page.ja_translated.xml_file': 0,
-            'page.ja_translated.xml_timestamp': 0,
-            'page.orig.file': 0,
-            'page.snippets.COVID-19関連': 0
-        }
-        sort_ = [
-            ('page.orig.timestamp', DESCENDING)
-        ]
-        if topic and country:
-            if topic != 'all':
-                filters.append({f'page.topics.{topic}': 1})
+        # set default filters
+        filters = [{"page.is_about_COVID-19": 1}]
+        projection = {"_id": 0}
+        sort_ = [("page.orig.timestamp", DESCENDING)]
+
+        # add filters based on the given parameters
+        if topic and topic != "all":
+            filters.append({"page.topics": topic})
+
+        if country and country != "all":
             countries = [country]
-            if country == 'int':
-                countries.append('eu')
-            filters.append({'page.country': {'$in': countries}})
-            result = self.collection.find(
-                projection=projection,
-                filter={'$and': filters},
-                sort=sort_
-            )
-            reshaped_pages = [doc['page'] for doc in result]
-            post_processed_pages = self._postprocess_pages(reshaped_pages, start, limit)
+            if country == "int":
+                countries.append("eu")
+            filters.append({"page.country": {"$in": countries}})
+
+        # get documents
+        result = self.collection.find(
+            projection=projection,
+            filter={"$and": filters},
+            sort=sort_
+        )
+        pages = [doc["page"] for doc in result]
+
+        # reshape the results
+        if topic and country:
+            reshaped_pages = [self._reshape_page(page) for page in self._slice_pages(pages, start, limit)]
         elif topic:
-            if topic != 'all':
-                filters.append({f'page.topics.{topic}': 1})
-            result = self.collection.find(
-                projection=projection,
-                filter={'$and': filters},
-                sort=sort_
-            )
-            reshaped_pages = self._reshape_pages_to_country_pages_map([doc['page'] for doc in result])
-            post_processed_pages = {
-                _topic: self._postprocess_pages(_pages, start, limit)
-                for _topic, _pages in reshaped_pages.items()
+            reshaped_pages = {
+                _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
+                for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
             }
         else:
-            result = self.collection.find(
-                projection=projection,
-                filter={'$and': filters},
-                sort=sort_
-            )
             reshaped_pages = {
-                _topic: self._reshape_pages_to_country_pages_map(_pages)
-                for _topic, _pages in self._reshape_pages_to_topic_pages_map([doc['page'] for doc in result]).items()
-            }
-            post_processed_pages = {
                 _topic: {
-                    _country: self._postprocess_pages(_country_pages, start, limit)
-                    for _country, _country_pages in _class_pages.items()
+                    _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
+                    for _country, _country_pages in self._reshape_pages_to_country_pages_map(_topic_pages).items()
                 }
-                for _topic, _class_pages in reshaped_pages.items()
+                for _topic, _topic_pages in self._reshape_pages_to_topic_pages_map(pages).items()
             }
-        return post_processed_pages
+        return reshaped_pages
 
 
 def main():
     cfg = load_config()
 
-    logger = logging.getLogger('Logging')
+    logger = logging.getLogger("Logging")
     logger.setLevel(20)
-    fh = logging.FileHandler(cfg['database']['log_path'], mode='a')
+    fh = logging.FileHandler(cfg["database"]["log_path"], mode="a")
     logger.addHandler(fh)
-    formatter = logging.Formatter('%(asctime)s:%(lineno)d:%(levelname)s:%(message)s')
+    formatter = logging.Formatter("%(asctime)s:%(lineno)d:%(levelname)s:%(message)s")
     fh.setFormatter(formatter)
 
-    mongo = HandlingPages(
-        host=cfg['database']['host'],
-        port=cfg['database']['port'],
-        db_name=cfg['database']['db_name'],
-        collection_name=cfg['database']['collection_name']
+    mongo = DBHandler(
+        host=cfg["database"]["host"],
+        port=cfg["database"]["port"],
+        db_name=cfg["database"]["db_name"],
+        collection_name=cfg["database"]["collection_name"]
     )
 
-    with open(cfg['database']["input_page_path"]) as f:
-        json_pages = [json.loads(line.strip()) for line in f]
-        mongo.upsert_pages(json_pages)
+    # add pages to the database or update pages
+    with open(cfg["database"]["input_page_path"]) as f:
+        for line in f:
+            mongo.upsert_page(json.loads(line.strip()))
+    num_docs = sum(1 for _ in mongo.collection.find())
+    logger.log(20, f"Number of pages: {num_docs}")
 
-    docs = [doc for doc in mongo.collection.find()]
-    logger.log(20, f'Number of pages: {len(docs)}')
+    # reflect the crowdsourcing results
+    if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
+        for input_path in glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/*.jsonl'):
+            with open(input_path) as f:
+                json_tags = [json.loads(line.strip()) for line in f]
+
+            for json_tag in json_tags:
+                search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
+                if search_result:
+                    page = search_result["page"]
+                    for tag in TAGS:
+                        page[tag] = json_tag["tags"][tag]
+
+                    new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
+                    page["topics"] = new_topics
+
+                    old_snippets = page["snippets"]
+                    new_snippets = {}
+                    for new_topic in new_topics:
+                        new_snippets[new_topic] = old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
+
+                    mongo.collection.update_one(
+                        {"page.url": json_tag["url"]},
+                        {"$set": {"page": page}}
+                    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

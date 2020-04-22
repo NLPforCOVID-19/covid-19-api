@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from util import load_config
-from database import HandlingPages
+from database import DBHandler
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 cfg = load_config()
-mongo = HandlingPages(
+mongo = DBHandler(
     host=cfg['database']['host'],
     port=cfg['database']['port'],
     db_name=cfg['database']['db_name'],
@@ -61,13 +61,16 @@ def classes(class_=None, country=None):
 @app.route('/meta')
 def meta():
     with open(os.path.join(here, "data", "meta.json")) as f:
-        return jsonify(json.load(f))
+        meta_info = json.load(f)
 
-
-@app.route('/stats')
-def stats():
     with open(os.path.join(here, "data", "stats.json")) as f:
-        return jsonify(json.load(f))
+        stats_info = json.load(f)
+
+    country_code_index_map = {country["country"]: i for i, country in enumerate(meta_info["countries"])}
+    for country_code, stats in stats_info["stats"].items():
+        meta_info["countries"][country_code_index_map[country_code]]["stats"] = stats
+
+    return jsonify(meta_info)
 
 
 @app.errorhandler(InvalidUsage)
