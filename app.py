@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from util import load_config
-from database import HandlingPages
+from database import DBHandler
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 cfg = load_config()
-mongo = HandlingPages(
+mongo = DBHandler(
     host=cfg['database']['host'],
     port=cfg['database']['port'],
     db_name=cfg['database']['db_name'],

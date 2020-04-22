@@ -15,7 +15,7 @@ TOPIC_CLASSES_MAP = {
 }
 
 
-class HandlingPages:
+class DBHandler:
     def __init__(self, host: str, port: int, db_name: str, collection_name: str) -> None:
         self.client = MongoClient(host=host, port=port)
         self.db = self.client[db_name]
@@ -157,7 +157,7 @@ def main():
     formatter = logging.Formatter("%(asctime)s:%(lineno)d:%(levelname)s:%(message)s")
     fh.setFormatter(formatter)
 
-    mongo = HandlingPages(
+    mongo = DBHandler(
         host=cfg["database"]["host"],
         port=cfg["database"]["port"],
         db_name=cfg["database"]["db_name"],
