@@ -76,8 +76,9 @@ class DBHandler:
 
     @staticmethod
     def _reshape_page(page: dict) -> dict:
-        page["topics"] = [{"name": topic, "snippet": page["snippets"].get(topic, "")} for topic in page["topics"]]
-        del page["snippets"]
+        if "snippets" in page.keys():
+            page["topics"] = [{"name": topic, "snippet": page["snippets"].get(topic, "")} for topic in page["topics"]]
+            del page["snippets"]
         return page
 
     @staticmethod
