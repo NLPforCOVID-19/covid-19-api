@@ -1,5 +1,4 @@
 import json
-import collections
 import logging
 
 from typing import List, Dict
@@ -7,14 +6,13 @@ from typing import List, Dict
 from util import load_config
 from pymongo import MongoClient, DESCENDING
 
-TOPIC_TO_CLASSES = {
+TOPIC_CLASSES_MAP = {
     "感染状況": ["感染状況"],
     "予防・緊急事態宣言": ["予防", "都市封鎖", "渡航制限・防疫", "イベント中止"],
     "症状・治療・検査など医療情報": ["検査", "治療"],
     "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
     "休校・オンライン授業": ["休校・オンライン授業"],
 }
-CROWDSOURCING_KEYS = ["is_useful", "is_clear", "is_about_false_rumor"]
 
 
 class HandlingPages:
@@ -25,42 +23,61 @@ class HandlingPages:
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
-        document["is_about_COVID-19"] = 1 if document["classes"]["COVID-19関連"] else 0
+        def convert_classe_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
+            topics = []
+            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
+                if any(class_flag_map[class_] for class_ in classes_about_topic):
+                    topics.append(topic)
+            return topics
 
-        for crowdsourcing_key in CROWDSOURCING_KEYS:
-            document[crowdsourcing_key] = -1
+        def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
+            reshaped = {}
+            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
+                snippets_about_topic = []
+                for class_ in classes_about_topic:
+                    snippets_about_topic += snippets.get(class_, [])
+                if snippets_about_topic:
+                    reshaped[topic] = snippets_about_topic[0]
+            return reshaped
 
-        document["topics"] = []
-        snippets = {}
-        for topic, classes in TOPIC_TO_CLASSES.items():
-            has_topic = False
-            snippet_list = []
-            for class_ in classes:
-                if document["classes"][class_]:
-                    has_topic = True
-                    snippet_list += document["snippets"][class_]
-            if has_topic:
-                document["topics"].append(topic)
-                snippet_list = [snippet for snippet in snippet_list if snippet]
-                snippets[topic] = snippet_list[0] if snippet_list else ''
-        document["snippets"] = snippets
-
-        del document["classes"]
-
+        is_about_covid_19 = 1 if document["classes"]["COVID-19関連"] else 0
+        country = document["country"]
+        orig = {
+            "title": document["orig"]["title"],
+            "timestamp": document["orig"]["timestamp"],
+        }
+        ja_translated = {
+            "title": document["ja_translated"]["title"],
+            "timestamp": document["ja_translated"]["timestamp"],
+        }
+        url = document["url"]
+        topics = convert_classe_flag_map_to_topics(document["classes"])
+        snippets = reshape_snippets(document["snippets"])
+        is_useful = -1
+        is_clear = -1
+        is_about_false_rumor = -1
+        document_ = {
+            "country": country,
+            "orig": orig,
+            "ja_translated": ja_translated,
+            "url": url,
+            "topics": topics,
+            "snippets": snippets,
+            "is_about_COVID-19": is_about_covid_19,
+            "is_useful": is_useful,
+            "is_clear": is_clear,
+            "is_about_false_rumor": is_about_false_rumor
+        }
         self.collection.update_one(
-            {"page.url": document["url"]},
-            {"$set": {"page": document}},
+            {"page.url": url},
+            {"$set": {"page": document_}},
             upsert=True
         )
 
     @staticmethod
     def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Slice a list of filtered pages."""
-        if start < len(filtered_pages):
-            sliced_pages = filtered_pages[start:start + limit]
-            return sliced_pages
-        else:
-            return []
+        return filtered_pages[start:start + limit] if start < len(filtered_pages) else []
 
     @staticmethod
     def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
@@ -86,20 +103,14 @@ class HandlingPages:
             {"page.is_about_COVID-19": 1}
         ]
         projection = {
-            "_id": 0,
-            "page.rawsentences": 0,
-            "page.domain": 0,
-            "page.ja_translated.file": 0,
-            "page.ja_translated.xml_file": 0,
-            "page.ja_translated.xml_timestamp": 0,
-            "page.orig.file": 0,
+            "_id": 0
         }
         sort_ = [
             ("page.orig.timestamp", DESCENDING)
         ]
         if topic and country:
             if topic != "all":
-                filters.append({"page.topics": {"$all": [topic]}})
+                filters.append({"page.topics": topic})
             countries = [country]
             if country == "int":
                 countries.append("eu")
@@ -113,7 +124,7 @@ class HandlingPages:
             sliced_pages = self._slice_pages(reshaped_pages, start, limit)
         elif topic:
             if topic != "all":
-                filters.append({"page.topics": {"$all": [topic]}})
+                filters.append({"page.topics": topic})
             result = self.collection.find(
                 projection=projection,
                 filter={"$and": filters},
