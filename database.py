@@ -99,60 +99,46 @@ class HandlingPages:
 
     def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         """Fetch pages based on given GET parameters."""
-        filters = [
-            {"page.is_about_COVID-19": 1}
-        ]
-        projection = {
-            "_id": 0
-        }
-        sort_ = [
-            ("page.orig.timestamp", DESCENDING)
-        ]
-        if topic and country:
-            if topic != "all":
-                filters.append({"page.topics": topic})
+        # set default filters
+        filters = [{"page.is_about_COVID-19": 1}]
+        projection = {"_id": 0}
+        sort_ = [("page.orig.timestamp", DESCENDING)]
+
+        # add filters based on the given parameters
+        if topic and topic != "all":
+            filters.append({"page.topics": topic})
+
+        if country and country != "all":
             countries = [country]
             if country == "int":
                 countries.append("eu")
             filters.append({"page.country": {"$in": countries}})
-            result = self.collection.find(
-                projection=projection,
-                filter={"$and": filters},
-                sort=sort_
-            )
-            reshaped_pages = [doc["page"] for doc in result]
-            sliced_pages = self._slice_pages(reshaped_pages, start, limit)
+
+        # get documents
+        result = self.collection.find(
+            projection=projection,
+            filter={"$and": filters},
+            sort=sort_
+        )
+        pages = [doc["page"] for doc in result]
+
+        # reshape the results
+        if topic and country:
+            reshaped_pages = self._slice_pages(pages, start, limit)
         elif topic:
-            if topic != "all":
-                filters.append({"page.topics": topic})
-            result = self.collection.find(
-                projection=projection,
-                filter={"$and": filters},
-                sort=sort_
-            )
-            reshaped_pages = self._reshape_pages_to_country_pages_map([doc["page"] for doc in result])
-            sliced_pages = {
-                _topic: self._slice_pages(_pages, start, limit)
-                for _topic, _pages in reshaped_pages.items()
+            reshaped_pages = {
+                _country: self._slice_pages(_country_pages, start, limit)
+                for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
             }
         else:
-            result = self.collection.find(
-                projection=projection,
-                filter={"$and": filters},
-                sort=sort_
-            )
             reshaped_pages = {
-                _topic: self._reshape_pages_to_country_pages_map(_pages)
-                for _topic, _pages in self._reshape_pages_to_topic_pages_map([doc["page"] for doc in result]).items()
-            }
-            sliced_pages = {
                 _topic: {
                     _country: self._slice_pages(_country_pages, start, limit)
-                    for _country, _country_pages in _class_pages.items()
+                    for _country, _country_pages in self._reshape_pages_to_country_pages_map(_pages).items()
                 }
-                for _topic, _class_pages in reshaped_pages.items()
+                for _topic, _pages in self._reshape_pages_to_topic_pages_map(pages).items()
             }
-        return sliced_pages
+        return reshaped_pages
 
 
 def main():
