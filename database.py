@@ -75,6 +75,12 @@ class HandlingPages:
         )
 
     @staticmethod
+    def _reshape_page(page: dict) -> dict:
+        page["topics"] = [{"name": topic, "snippet": page["snippets"].get(topic, "")} for topic in page["topics"]]
+        del page["snippets"]
+        return page
+
+    @staticmethod
     def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Slice a list of filtered pages."""
         return filtered_pages[start:start + limit] if start < len(filtered_pages) else []
@@ -124,16 +130,16 @@ class HandlingPages:
 
         # reshape the results
         if topic and country:
-            reshaped_pages = self._slice_pages(pages, start, limit)
+            reshaped_pages = [self._reshape_page(page) for page in self._slice_pages(pages, start, limit)]
         elif topic:
             reshaped_pages = {
-                _country: self._slice_pages(_country_pages, start, limit)
+                _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
                 for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
             }
         else:
             reshaped_pages = {
                 _topic: {
-                    _country: self._slice_pages(_country_pages, start, limit)
+                    _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
                     for _country, _country_pages in self._reshape_pages_to_country_pages_map(_pages).items()
                 }
                 for _topic, _pages in self._reshape_pages_to_topic_pages_map(pages).items()
