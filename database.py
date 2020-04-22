@@ -2,6 +2,7 @@ import os
 import json
 import glob
 import logging
+import copy
 
 from typing import List, Dict
 
@@ -79,10 +80,13 @@ class DBHandler:
 
     @staticmethod
     def _reshape_page(page: dict) -> dict:
-        if "snippets" in page.keys():
-            page["topics"] = [{"name": topic, "snippet": page["snippets"].get(topic, "")} for topic in page["topics"]]
-            del page["snippets"]
-        return page
+        copied_page = copy.deepcopy(page)
+        copied_page["topics"] = [
+            {"name": topic, "snippet": copied_page["snippets"].get(topic, "")}
+            for topic in copied_page["topics"]
+        ]
+        del copied_page["snippets"]
+        return copied_page
 
     @staticmethod
     def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
@@ -144,9 +148,9 @@ class DBHandler:
             reshaped_pages = {
                 _topic: {
                     _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
-                    for _country, _country_pages in self._reshape_pages_to_country_pages_map(_pages).items()
+                    for _country, _country_pages in self._reshape_pages_to_country_pages_map(_topic_pages).items()
                 }
-                for _topic, _pages in self._reshape_pages_to_topic_pages_map(pages).items()
+                for _topic, _topic_pages in self._reshape_pages_to_topic_pages_map(pages).items()
             }
         return reshaped_pages
 
