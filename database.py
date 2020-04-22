@@ -1,4 +1,6 @@
+import os
 import json
+import glob
 import logging
 
 from typing import List, Dict
@@ -13,6 +15,7 @@ TOPIC_CLASSES_MAP = {
     "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
     "休校・オンライン授業": ["休校・オンライン授業"],
 }
+TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
 
 
 class DBHandler:
@@ -165,12 +168,38 @@ def main():
         collection_name=cfg["database"]["collection_name"]
     )
 
+    # add pages to the database or update pages
     with open(cfg["database"]["input_page_path"]) as f:
         for line in f:
             mongo.upsert_page(json.loads(line.strip()))
-
     num_docs = sum(1 for _ in mongo.collection.find())
     logger.log(20, f"Number of pages: {num_docs}")
+
+    # reflect the crowdsourcing results
+    if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
+        for input_path in glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/*.jsonl'):
+            with open(input_path) as f:
+                json_tags = [json.loads(line.strip()) for line in f]
+
+            for json_tag in json_tags:
+                search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
+                if search_result:
+                    page = search_result["page"]
+                    for tag in TAGS:
+                        page[tag] = json_tag["tags"][tag]
+
+                    new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
+                    page["topics"] = new_topics
+
+                    old_snippets = page["snippets"]
+                    new_snippets = {}
+                    for new_topic in new_topics:
+                        new_snippets[new_topic] = old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
+
+                    mongo.collection.update_one(
+                        {"page.url": json_tag["url"]},
+                        {"$set": {"page": page}}
+                    )
 
 
 if __name__ == "__main__":
