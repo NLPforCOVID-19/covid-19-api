@@ -41,17 +41,17 @@ class DBHandler:
                 for class_ in classes_about_topic:
                     snippets_about_topic += snippets.get(class_, [])
                 if snippets_about_topic:
-                    reshaped[topic] = snippets_about_topic[0]
+                    reshaped[topic] = snippets_about_topic[0].strip()
             return reshaped
 
         is_about_covid_19 = 1 if document["classes"]["COVID-19関連"] else 0
         country = document["country"]
         orig = {
-            "title": document["orig"]["title"],
+            "title": document["orig"]["title"].strip(),
             "timestamp": document["orig"]["timestamp"],
         }
         ja_translated = {
-            "title": document["ja_translated"]["title"],
+            "title": document["ja_translated"]["title"].strip(),
             "timestamp": document["ja_translated"]["timestamp"],
         }
         url = document["url"]
