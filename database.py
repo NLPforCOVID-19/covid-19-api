@@ -57,6 +57,7 @@ class DBHandler:
         url = document["url"]
         topics = convert_classe_flag_map_to_topics(document["classes"])
         snippets = reshape_snippets(document["snippets"])
+        is_checked = 0
         is_useful = -1
         is_clear = -1
         is_about_false_rumor = -1
@@ -67,6 +68,7 @@ class DBHandler:
             "url": url,
             "topics": topics,
             "snippets": snippets,
+            "is_checked": is_checked,
             "is_about_COVID-19": is_about_covid_19,
             "is_useful": is_useful,
             "is_clear": is_clear,
@@ -189,6 +191,7 @@ def main():
                 search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
                 if search_result:
                     page = search_result["page"]
+                    page["is_checked"] = 1
                     for tag in TAGS:
                         page[tag] = json_tag["tags"][tag]
 
