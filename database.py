@@ -81,6 +81,15 @@ class DBHandler:
         )
 
     @staticmethod
+    def _remove_unnecessary_pages(pages: List[dict]) -> List[dict]:
+        remained_pages = []
+        for page in pages:
+            filter = page['is_checked'] == 1 and page['is_useful'] == 0 and page['is_about_false_rumor'] == 0
+            if not filter:
+                remained_pages.append(page)
+        return remained_pages
+
+    @staticmethod
     def _reshape_page(page: dict) -> dict:
         copied_page = copy.deepcopy(page)
         copied_page["topics"] = [
@@ -136,7 +145,7 @@ class DBHandler:
             filter={"$and": filters},
             sort=sort_
         )
-        pages = [doc["page"] for doc in result]
+        pages = self._remove_unnecessary_pages([doc["page"] for doc in result])
 
         # reshape the results
         if topic and country:
