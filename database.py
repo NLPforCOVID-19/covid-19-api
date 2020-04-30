@@ -17,6 +17,7 @@ TOPIC_CLASSES_MAP = {
     "休校・オンライン授業": ["休校・オンライン授業"],
 }
 TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
+MAX_USEFUL_PAGES = 10
 
 
 class DBHandler:
@@ -27,7 +28,7 @@ class DBHandler:
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
-        def convert_classe_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
+        def convert_class_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
             topics = []
             for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
                 if any(class_flag_map[class_] for class_ in classes_about_topic):
@@ -55,7 +56,7 @@ class DBHandler:
             "timestamp": document["ja_translated"]["timestamp"],
         }
         url = document["url"]
-        topics = convert_classe_flag_map_to_topics(document["classes"])
+        topics = convert_class_flag_map_to_topics(document["classes"])
         snippets = reshape_snippets(document["snippets"])
         is_checked = 0
         is_useful = -1
@@ -81,15 +82,6 @@ class DBHandler:
         )
 
     @staticmethod
-    def _remove_unnecessary_pages(pages: List[dict]) -> List[dict]:
-        remained_pages = []
-        for page in pages:
-            filter = page['is_checked'] == 1 and page['is_useful'] == 0 and page['is_about_false_rumor'] == 0
-            if not filter:
-                remained_pages.append(page)
-        return remained_pages
-
-    @staticmethod
     def _reshape_page(page: dict) -> dict:
         copied_page = copy.deepcopy(page)
         copied_page["topics"] = [
@@ -100,9 +92,19 @@ class DBHandler:
         return copied_page
 
     @staticmethod
-    def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
-        """Slice a list of filtered pages."""
-        return filtered_pages[start:start + limit] if start < len(filtered_pages) else []
+    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+        """Prioritize useful pages and slice a list of filtered pages."""
+        useful_pages, other_pages = [], []
+        if start < len(filtered_pages):
+            for filtered_page in filtered_pages:
+                if filtered_page['is_useful'] == 2 and len(useful_pages) < MAX_USEFUL_PAGES:
+                    useful_pages.append(filtered_page)
+                else:
+                    other_pages.append(filtered_page)
+            postprocessed_pages = useful_pages + filtered_pages
+            return postprocessed_pages[start:start+limit]
+        else:
+            return []
 
     @staticmethod
     def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
@@ -125,7 +127,16 @@ class DBHandler:
     def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         """Fetch pages based on given GET parameters."""
         # set default filters
-        filters = [{"page.is_about_COVID-19": 1}]
+        filters = [
+            # filter out pages that are not about COVID-19
+            {"page.is_about_COVID-19": 1},
+            # filter out pages that have been manually checked and regarded as not useful ones
+            {"$or": [
+                {"page.is_checked": {"$ne": 1}},
+                {"page.is_useful": {"$ne": 0}},
+                {"page.is_about_false_rumor": {"$ne": 0}}
+            ]}
+        ]
         projection = {"_id": 0}
         sort_ = [("page.orig.timestamp", DESCENDING)]
 
@@ -145,20 +156,22 @@ class DBHandler:
             filter={"$and": filters},
             sort=sort_
         )
-        pages = self._remove_unnecessary_pages([doc["page"] for doc in result])
+        pages = [doc["page"] for doc in result]
 
         # reshape the results
         if topic and country:
-            reshaped_pages = [self._reshape_page(page) for page in self._slice_pages(pages, start, limit)]
+            reshaped_pages = [self._reshape_page(page) for page in self._postprocess_pages(pages, start, limit)]
         elif topic:
             reshaped_pages = {
-                _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
+                _country: [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
                 for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
             }
         else:
             reshaped_pages = {
                 _topic: {
-                    _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
+                    _country: [self._reshape_page(page) for page in self._postprocess_pages(_country_pages,
+                                                                                            start,
+                                                                                            limit)]
                     for _country, _country_pages in self._reshape_pages_to_country_pages_map(_topic_pages).items()
                 }
                 for _topic, _topic_pages in self._reshape_pages_to_topic_pages_map(pages).items()
