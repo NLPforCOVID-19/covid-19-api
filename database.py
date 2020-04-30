@@ -17,6 +17,7 @@ TOPIC_CLASSES_MAP = {
     "休校・オンライン授業": ["休校・オンライン授業"],
 }
 TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
+MAX_USEFUL_PAGES = 10
 
 
 class DBHandler:
@@ -100,9 +101,19 @@ class DBHandler:
         return copied_page
 
     @staticmethod
-    def _slice_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
-        """Slice a list of filtered pages."""
-        return filtered_pages[start:start + limit] if start < len(filtered_pages) else []
+    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+        """Prioritize useful pages and slice a list of filtered pages."""
+        useful_pages, other_pages = [], []
+        if start < len(filtered_pages):
+            for filtered_page in filtered_pages:
+                if filtered_page['is_useful'] == 2 and len(useful_pages) < MAX_USEFUL_PAGES:
+                    useful_pages.append(filtered_page)
+                else:
+                    other_pages.append(filtered_page)
+            postprocessed_pages = useful_pages + filtered_pages
+            return postprocessed_pages[start:start+limit]
+        else:
+            return []
 
     @staticmethod
     def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
@@ -149,16 +160,18 @@ class DBHandler:
 
         # reshape the results
         if topic and country:
-            reshaped_pages = [self._reshape_page(page) for page in self._slice_pages(pages, start, limit)]
+            reshaped_pages = [self._reshape_page(page) for page in self._postprocess_pages(pages, start, limit)]
         elif topic:
             reshaped_pages = {
-                _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
+                _country: [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
                 for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
             }
         else:
             reshaped_pages = {
                 _topic: {
-                    _country: [self._reshape_page(page) for page in self._slice_pages(_country_pages, start, limit)]
+                    _country: [self._reshape_page(page) for page in self._postprocess_pages(_country_pages,
+                                                                                            start,
+                                                                                            limit)]
                     for _country, _country_pages in self._reshape_pages_to_country_pages_map(_topic_pages).items()
                 }
                 for _topic, _topic_pages in self._reshape_pages_to_topic_pages_map(pages).items()
