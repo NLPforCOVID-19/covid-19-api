@@ -28,7 +28,7 @@ class DBHandler:
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
-        def convert_classe_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
+        def convert_class_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
             topics = []
             for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
                 if any(class_flag_map[class_] for class_ in classes_about_topic):
@@ -56,7 +56,7 @@ class DBHandler:
             "timestamp": document["ja_translated"]["timestamp"],
         }
         url = document["url"]
-        topics = convert_classe_flag_map_to_topics(document["classes"])
+        topics = convert_class_flag_map_to_topics(document["classes"])
         snippets = reshape_snippets(document["snippets"])
         is_checked = 0
         is_useful = -1
@@ -80,15 +80,6 @@ class DBHandler:
             {"$set": {"page": document_}},
             upsert=True
         )
-
-    @staticmethod
-    def _remove_unnecessary_pages(pages: List[dict]) -> List[dict]:
-        remained_pages = []
-        for page in pages:
-            filter = page['is_checked'] == 1 and page['is_useful'] == 0 and page['is_about_false_rumor'] == 0
-            if not filter:
-                remained_pages.append(page)
-        return remained_pages
 
     @staticmethod
     def _reshape_page(page: dict) -> dict:
@@ -136,7 +127,16 @@ class DBHandler:
     def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         """Fetch pages based on given GET parameters."""
         # set default filters
-        filters = [{"page.is_about_COVID-19": 1}]
+        filters = [
+            # filter out pages that are not about COVID-19
+            {"page.is_about_COVID-19": 1},
+            # filter out pages that have been manually checked and regarded as not useful ones
+            {"$or": [
+                {"page.is_checked": {"$ne": 1}},
+                {"page.is_useful": {"$ne": 0}},
+                {"page.is_about_false_rumor": {"$ne": 0}}
+            ]}
+        ]
         projection = {"_id": 0}
         sort_ = [("page.orig.timestamp", DESCENDING)]
 
@@ -156,7 +156,7 @@ class DBHandler:
             filter={"$and": filters},
             sort=sort_
         )
-        pages = self._remove_unnecessary_pages([doc["page"] for doc in result])
+        pages = [doc["page"] for doc in result]
 
         # reshape the results
         if topic and country:
