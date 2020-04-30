@@ -52,7 +52,7 @@
         "dataRepository": ["Spain"]
       },
       "language": "es",
-      "representativeSiteUrl": "#"
+      "representativeSiteUrl": "https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov-China/home.htm"
     },
     {
       "country": "de",
@@ -61,7 +61,7 @@
         "dataRepository": ["Germany"]
       },
       "language": "de",
-      "representativeSiteUrl": "#"
+      "representativeSiteUrl": "https://www.zusammengegencorona.de/"
     },
     {
       "country": "kr",
@@ -79,7 +79,7 @@
         "dataRepository": ["India"]
       },
       "language": "hi",
-      "representativeSiteUrl": "#"
+      "representativeSiteUrl": "https://www.mygov.in/covid-19/"
     },
     {
       "country": "int",
