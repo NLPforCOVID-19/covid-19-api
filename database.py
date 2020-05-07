@@ -96,12 +96,15 @@ class DBHandler:
         """Prioritize useful pages and slice a list of filtered pages."""
         useful_pages, other_pages = [], []
         if start < len(filtered_pages):
-            for filtered_page in filtered_pages:
-                if filtered_page['is_useful'] == 2 and len(useful_pages) < MAX_USEFUL_PAGES:
+            for i, filtered_page in enumerate(filtered_pages):
+                if len(useful_pages) == MAX_USEFUL_PAGES:
+                    other_pages.extend(filtered_pages[i:])
+                    break
+                elif filtered_page['is_useful'] == 2:
                     useful_pages.append(filtered_page)
                 else:
                     other_pages.append(filtered_page)
-            postprocessed_pages = useful_pages + filtered_pages
+            postprocessed_pages = useful_pages + other_pages
             return postprocessed_pages[start:start+limit]
         else:
             return []
