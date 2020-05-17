@@ -145,7 +145,10 @@ class DBHandler:
 
         # add filters based on the given parameters
         if topic and topic != "all":
-            filters.append({"page.topics": topic})
+            topics = [topic]
+            if topic == "その他":
+                topics.append("芸能・スポーツ")
+            filters.append({"page.topics": {"$in": topics}})
 
         if country and country != "all":
             countries = [country]
