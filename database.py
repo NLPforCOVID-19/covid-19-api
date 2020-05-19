@@ -20,10 +20,11 @@ MAX_USEFUL_PAGES = 10
 
 
 class DBHandler:
-    def __init__(self, host: str, port: int, db_name: str, collection_name: str) -> None:
+    def __init__(self, host: str, port: int, db_name: str, collection_name: str, useful_white_list: List) -> None:
         self.client = MongoClient(host=host, port=port)
         self.db = self.client[db_name]
         self.collection = self.db.get_collection(name=collection_name)
+        self.useful_white_list = useful_white_list
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
@@ -95,20 +96,22 @@ class DBHandler:
         del copied_page["snippets"]
         return copied_page
 
-    @staticmethod
-    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+    def _postprocess_pages(self, filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Prioritize useful pages and slice a list of filtered pages."""
-        useful_pages, other_pages = [], []
+        useful_whitelist_pages, useful_pages, other_pages = [], [], []
         if start < len(filtered_pages):
             for i, filtered_page in enumerate(filtered_pages):
                 if len(useful_pages) == MAX_USEFUL_PAGES:
                     other_pages.extend(filtered_pages[i:])
                     break
                 elif filtered_page['is_useful'] == 2:
-                    useful_pages.append(filtered_page)
+                    if filtered_page['url'] in self.useful_white_list:
+                        useful_whitelist_pages.append(filtered_page)
+                    else:
+                        useful_pages.append(filtered_page)
                 else:
                     other_pages.append(filtered_page)
-            postprocessed_pages = useful_pages + other_pages
+            postprocessed_pages = useful_whitelist_pages + useful_pages + other_pages
             return postprocessed_pages[start:start+limit]
         else:
             return []
