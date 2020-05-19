@@ -10,6 +10,6 @@
   },
   "crowdsourcing": {
     "result_dir": "<path-to-result-dir>",
-    "useful_white_list": "<path-to-white-list-of-useful-pages"
+    "useful_white_list": "<path-to-white-list-of-useful-pages>"
   }
 }
