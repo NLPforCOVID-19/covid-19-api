@@ -145,6 +145,11 @@ class DBHandler:
                 {"page.is_checked": {"$ne": 1}},
                 {"page.is_useful": {"$ne": 0}},
                 {"page.is_about_false_rumor": {"$ne": 0}}
+            ]},
+            # filter out pages that have not been manually checked about France
+            {"$or": [
+                {"page.is_checked": {"$ne": 0}},
+                {"page.country": {"$ne": "fr"}},
             ]}
         ]
         projection = {"_id": 0}
