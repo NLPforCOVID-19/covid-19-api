@@ -1,6 +1,5 @@
 import os
 import json
-import glob
 import logging
 import copy
 
@@ -21,10 +20,11 @@ MAX_USEFUL_PAGES = 10
 
 
 class DBHandler:
-    def __init__(self, host: str, port: int, db_name: str, collection_name: str) -> None:
+    def __init__(self, host: str, port: int, db_name: str, collection_name: str, useful_white_list: List) -> None:
         self.client = MongoClient(host=host, port=port)
         self.db = self.client[db_name]
         self.collection = self.db.get_collection(name=collection_name)
+        self.useful_white_list = useful_white_list
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
@@ -75,11 +75,16 @@ class DBHandler:
             "is_clear": is_clear,
             "is_about_false_rumor": is_about_false_rumor
         }
-        self.collection.update_one(
-            {"page.url": url},
-            {"$set": {"page": document_}},
-            upsert=True
-        )
+
+        existing_page = self.collection.find_one({"page.url": url})
+        if existing_page and orig["timestamp"] > existing_page["page"]["orig"]["timestamp"]:
+            self.collection.update_one(
+                {"page.url": url},
+                {"$set": {"page": document_}},
+                upsert=True
+            )
+        elif not existing_page:
+            self.collection.insert_one({"page": document_})
 
     @staticmethod
     def _reshape_page(page: dict) -> dict:
@@ -91,20 +96,22 @@ class DBHandler:
         del copied_page["snippets"]
         return copied_page
 
-    @staticmethod
-    def _postprocess_pages(filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
+    def _postprocess_pages(self, filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Prioritize useful pages and slice a list of filtered pages."""
-        useful_pages, other_pages = [], []
+        useful_whitelist_pages, useful_pages, other_pages = [], [], []
         if start < len(filtered_pages):
             for i, filtered_page in enumerate(filtered_pages):
                 if len(useful_pages) == MAX_USEFUL_PAGES:
                     other_pages.extend(filtered_pages[i:])
                     break
                 elif filtered_page['is_useful'] == 2:
-                    useful_pages.append(filtered_page)
+                    if filtered_page['url'] in self.useful_white_list:
+                        useful_whitelist_pages.append(filtered_page)
+                    else:
+                        useful_pages.append(filtered_page)
                 else:
                     other_pages.append(filtered_page)
-            postprocessed_pages = useful_pages + other_pages
+            postprocessed_pages = useful_whitelist_pages + useful_pages + other_pages
             return postprocessed_pages[start:start+limit]
         else:
             return []
@@ -138,10 +145,26 @@ class DBHandler:
                 {"page.is_checked": {"$ne": 1}},
                 {"page.is_useful": {"$ne": 0}},
                 {"page.is_about_false_rumor": {"$ne": 0}}
-            ]}
+            ]},
         ]
         projection = {"_id": 0}
         sort_ = [("page.orig.timestamp", DESCENDING)]
+
+        preliminary_result = self.collection.find(
+            projection=projection,
+            filter={"page.is_checked": 1},
+            sort=sort_
+        )
+        last_crowd_sourcing_time = "2020-01-01T00:00:00.000000"
+        for doc in preliminary_result:
+            last_crowd_sourcing_time = doc["page"]["orig"]["timestamp"]
+            break
+        filters.append(
+            {"$or": [
+                {"page.is_checked": {"$ne": 0}},
+                {"page.orig.timestamp": {"$gt": last_crowd_sourcing_time}}
+            ]}
+        )
 
         # add filters based on the given parameters
         if topic and topic != "all":
@@ -195,11 +218,14 @@ def main():
     formatter = logging.Formatter("%(asctime)s:%(lineno)d:%(levelname)s:%(message)s")
     fh.setFormatter(formatter)
 
+    with open(cfg["crowdsourcing"]["useful_white_list"], mode='r') as f:
+        useful_white_list = [line.strip() for line in f.readlines()]
     mongo = DBHandler(
         host=cfg["database"]["host"],
         port=cfg["database"]["port"],
         db_name=cfg["database"]["db_name"],
-        collection_name=cfg["database"]["collection_name"]
+        collection_name=cfg["database"]["collection_name"],
+        useful_white_list=useful_white_list
     )
 
     # add pages to the database or update pages
@@ -211,30 +237,29 @@ def main():
 
     # reflect the crowdsourcing results
     if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
-        for input_path in glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/*.jsonl'):
-            with open(input_path) as f:
-                json_tags = [json.loads(line.strip()) for line in f]
+        with open(f'{cfg["crowdsourcing"]["result_dir"]}/crowdsourcing_all.jsonl') as f:
+            json_tags = [json.loads(line.strip()) for line in f]
 
-            for json_tag in json_tags:
-                search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
-                if search_result:
-                    page = search_result["page"]
-                    page["is_checked"] = 1
-                    for tag in TAGS:
-                        page[tag] = json_tag["tags"][tag]
+        for json_tag in json_tags:
+            search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
+            if search_result:
+                page = search_result["page"]
+                page["is_checked"] = 1
+                for tag in TAGS:
+                    page[tag] = json_tag["tags"][tag]
 
-                    new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
-                    page["topics"] = new_topics
+                new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
+                page["topics"] = new_topics
 
-                    old_snippets = page["snippets"]
-                    new_snippets = {}
-                    for new_topic in new_topics:
-                        new_snippets[new_topic] = old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
+                old_snippets = page["snippets"]
+                new_snippets = {}
+                for new_topic in new_topics:
+                    new_snippets[new_topic] = old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
 
-                    mongo.collection.update_one(
-                        {"page.url": json_tag["url"]},
-                        {"$set": {"page": page}}
-                    )
+                mongo.collection.update_one(
+                    {"page.url": json_tag["url"]},
+                    {"$set": {"page": page}}
+                )
 
 
 if __name__ == "__main__":

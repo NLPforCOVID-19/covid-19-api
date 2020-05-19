@@ -9,6 +9,7 @@
     "log_path": "<path-to-log-dir>/update.log"
   },
   "crowdsourcing": {
-    "result_dir": "<path-to-result-dir>"
+    "result_dir": "<path-to-result-dir>",
+    "useful_white_list": "<path-to-white-list-of-useful-pages>"
   }
 }
