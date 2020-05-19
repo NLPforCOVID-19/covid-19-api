@@ -146,14 +146,25 @@ class DBHandler:
                 {"page.is_useful": {"$ne": 0}},
                 {"page.is_about_false_rumor": {"$ne": 0}}
             ]},
-            # filter out pages that have not been manually checked about France
-            {"$or": [
-                {"page.is_checked": {"$ne": 0}},
-                {"page.country": {"$ne": "fr"}},
-            ]}
         ]
         projection = {"_id": 0}
         sort_ = [("page.orig.timestamp", DESCENDING)]
+
+        preliminary_result = self.collection.find(
+            projection=projection,
+            filter={"page.is_checked": 1},
+            sort=sort_
+        )
+        last_crowd_sourcing_time = "2020-01-01T00:00:00.000000"
+        for doc in preliminary_result:
+            last_crowd_sourcing_time = doc["page"]["orig"]["timestamp"]
+            break
+        filters.append(
+            {"$or": [
+                {"page.is_checked": {"$ne": 0}},
+                {"page.orig.timestamp": {"$gt": last_crowd_sourcing_time}}
+            ]}
+        )
 
         # add filters based on the given parameters
         if topic and topic != "all":
