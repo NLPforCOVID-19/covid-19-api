@@ -202,11 +202,14 @@ def main():
     formatter = logging.Formatter("%(asctime)s:%(lineno)d:%(levelname)s:%(message)s")
     fh.setFormatter(formatter)
 
+    with open(cfg["crowdsourcing"]["useful_white_list"], mode='r') as f:
+        useful_white_list = [line.strip() for line in f.readlines()]
     mongo = DBHandler(
         host=cfg["database"]["host"],
         port=cfg["database"]["port"],
         db_name=cfg["database"]["db_name"],
-        collection_name=cfg["database"]["collection_name"]
+        collection_name=cfg["database"]["collection_name"],
+        useful_white_list=useful_white_list
     )
 
     # add pages to the database or update pages
