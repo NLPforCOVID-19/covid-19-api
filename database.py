@@ -8,6 +8,18 @@ from typing import List, Dict
 from util import load_config
 from pymongo import MongoClient, DESCENDING
 
+COUNTRY_REGION_MAP = {
+    "eu": "int",
+    "fr": "eur",
+    "es": "eur",
+    "de": "eur",
+    "in": "asia",
+    "kr": "asia"
+}
+REGION_COUNTRIES_MAP = {
+    region: [country for country, region_ in COUNTRY_REGION_MAP.items() if region_ == region]
+    for region in COUNTRY_REGION_MAP.values()
+}
 TOPIC_CLASSES_MAP = {
     "感染状況": ["感染状況"],
     "予防・緊急事態宣言": ["予防", "都市封鎖", "渡航制限・防疫", "イベント中止"],
@@ -175,12 +187,7 @@ class DBHandler:
 
         if country and country != "all":
             countries = [country]
-            if country == "int":
-                countries.append("eu")
-            if country == "eur":
-                countries.extend(["fr", "es", "de"])
-            if country == "asia":
-                countries.extend(["in", "kr"])
+            countries.extend(REGION_COUNTRIES_MAP.get(country, []))
             filters.append({"page.country": {"$in": countries}})
 
         # get documents
@@ -196,15 +203,15 @@ class DBHandler:
             reshaped_pages = [self._reshape_page(page) for page in self._postprocess_pages(pages, start, limit)]
         elif topic:
             reshaped_pages = {
-                _country: [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
+                COUNTRY_REGION_MAP.get(_country, _country):
+                    [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
                 for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
             }
         else:
             reshaped_pages = {
                 _topic: {
-                    _country: [self._reshape_page(page) for page in self._postprocess_pages(_country_pages,
-                                                                                            start,
-                                                                                            limit)]
+                    COUNTRY_REGION_MAP.get(_country, _country):
+                        [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
                     for _country, _country_pages in self._reshape_pages_to_country_pages_map(_topic_pages).items()
                 }
                 for _topic, _topic_pages in self._reshape_pages_to_topic_pages_map(pages).items()
