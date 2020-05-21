@@ -9,7 +9,7 @@ from util import load_config
 from pymongo import MongoClient, DESCENDING
 
 COUNTRY_REGION_MAP = {
-    "eu": "int",
+    "eu": "eur",
     "fr": "eur",
     "es": "eur",
     "de": "eur",
