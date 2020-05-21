@@ -47,7 +47,7 @@
     {
       "country": "asia",
       "name": {
-        "ja": "アジア",
+        "ja": "アジア (日本・中国を除く)",
         "dataRepository": ["Indonesia", "India", "Korea, South", "Thailand", "Vietnam", "Singapore", "Philippines", "Malaysia", "Pakistan", "Iran", "Israel", "Mongolia", "Maldives", "Cambodia", "Saudi Arabia", "Nepal", "Bangladesh", "Afghanistan", "Sri Lanka", "Laos", "Uzbekistan", "Iraq", "Syria", "United Arab Emirates", "Armenia", "Lebanon", "Brunei", "Jordan", "Qatar", "Palestine", "Yemen", "Tajikistan", "Timor-Leste", "Bhutan", "Kuwait", "Oman", "Turkmenistan", "Kyrgyzstan", "Bahrain"]
       },
       "language": "en",
