@@ -177,6 +177,10 @@ class DBHandler:
             countries = [country]
             if country == "int":
                 countries.append("eu")
+            if country == "eur":
+                countries.extend(["fr", "es", "de"])
+            if country == "asia":
+                countries.extend(["in", "kr"])
             filters.append({"page.country": {"$in": countries}})
 
         # get documents

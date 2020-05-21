@@ -36,49 +36,22 @@
       "representativeSiteUrl": "https://www.cdc.gov/coronavirus/index.html"
     },
     {
-      "country": "fr",
+      "country": "eur",
       "name": {
-        "ja": "フランス",
-        "dataRepository": ["France"]
+        "ja": "ヨーロッパ",
+        "dataRepository": ["Belgium", "Bulgaria", "Czechia", "Denmark", "Germany", "Estonia", "Ireland", "Greece", "Spain", "France", "Croatia", "Italy", "Cyprus", "Latvia", "Lithuania", "Luxembourg", "Hungary", "Malta", "Netherlands", "Austria", "Poland", "Portugal", "Romania", "Slovenia", "Slovakia", "Finland", "Sweden"]
       },
-      "language": "fr",
-      "representativeSiteUrl": "https://www.gouvernement.fr/info-coronavirus"
+      "language": "en",
+      "representativeSiteUrl": "https://www.ecdc.europa.eu/en/covid-19-pandemic"
     },
     {
-      "country": "es",
+      "country": "asia",
       "name": {
-        "ja": "スペイン",
-        "dataRepository": ["Spain"]
+        "ja": "アジア",
+        "dataRepository": ["Indonesia", "India", "Korea, South", "Thailand", "Vietnam", "Singapore", "Philippines", "Malaysia", "Pakistan", "Iran", "Israel", "Mongolia", "Maldives", "Cambodia", "Saudi Arabia", "Nepal", "Bangladesh", "Afghanistan", "Sri Lanka", "Laos", "Uzbekistan", "Iraq", "Syria", "United Arab Emirates", "Armenia", "Lebanon", "Brunei", "Jordan", "Qatar", "Palestine", "Yemen", "Tajikistan", "Timor-Leste", "Bhutan", "Kuwait", "Oman", "Turkmenistan", "Kyrgyzstan", "Bahrain"]
       },
-      "language": "es",
-      "representativeSiteUrl": "https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov-China/home.htm"
-    },
-    {
-      "country": "de",
-      "name": {
-        "ja": "ドイツ",
-        "dataRepository": ["Germany"]
-      },
-      "language": "de",
-      "representativeSiteUrl": "https://www.zusammengegencorona.de/"
-    },
-    {
-      "country": "kr",
-      "name": {
-        "ja": "韓国",
-        "dataRepository": ["Korea, South"]
-      },
-      "language": "ko",
-      "representativeSiteUrl": "https://www.cdc.go.kr/cdc_eng/"
-    },
-    {
-      "country": "in",
-      "name": {
-        "ja": "インド",
-        "dataRepository": ["India"]
-      },
-      "language": "hi",
-      "representativeSiteUrl": "https://www.mygov.in/covid-19/"
+      "language": "en",
+      "representativeSiteUrl": "#"
     },
     {
       "country": "int",
