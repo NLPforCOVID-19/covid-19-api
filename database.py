@@ -1,5 +1,6 @@
 import os
 import json
+import glob
 import logging
 import copy
 
@@ -40,6 +41,7 @@ class DBHandler:
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
+
         def convert_class_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
             topics = []
             for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
@@ -124,7 +126,7 @@ class DBHandler:
                 else:
                     other_pages.append(filtered_page)
             postprocessed_pages = useful_whitelist_pages + useful_pages + other_pages
-            return postprocessed_pages[start:start+limit]
+            return postprocessed_pages[start:start + limit]
         else:
             return []
 
@@ -248,29 +250,37 @@ def main():
 
     # reflect the crowdsourcing results
     if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
-        with open(f'{cfg["crowdsourcing"]["result_dir"]}/crowdsourcing_all.jsonl') as f:
-            json_tags = [json.loads(line.strip()) for line in f]
+        for input_path in sorted(glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/20*.jsonl')):
+            file_name = os.path.splitext(os.path.basename(input_path))[0]
+            crowd_sourcing_date = file_name.split('_')[0]
+            crowd_sourcing_timestamp = \
+                f"{crowd_sourcing_date[:4]}-{crowd_sourcing_date[4:6]}-{crowd_sourcing_date[6:]}T00:00:00.000000"
 
-        for json_tag in json_tags:
-            search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
-            if search_result:
-                page = search_result["page"]
-                page["is_checked"] = 1
-                for tag in TAGS:
-                    page[tag] = json_tag["tags"][tag]
+            with open(input_path, 'r') as f:
+                json_tags = [json.loads(line.strip()) for line in f]
+            for json_tag in json_tags:
+                search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
+                if search_result:
+                    page = search_result["page"]
+                    existing_timestamp = page["orig"]["timestamp"]
+                    if crowd_sourcing_timestamp > existing_timestamp:
+                        page["is_checked"] = 1
+                        for tag in TAGS:
+                            page[tag] = json_tag["tags"][tag]
 
-                new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
-                page["topics"] = new_topics
+                        new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
+                        page["topics"] = new_topics
 
-                old_snippets = page["snippets"]
-                new_snippets = {}
-                for new_topic in new_topics:
-                    new_snippets[new_topic] = old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
+                        old_snippets = page["snippets"]
+                        new_snippets = {}
+                        for new_topic in new_topics:
+                            new_snippets[new_topic] = \
+                                old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
 
-                mongo.collection.update_one(
-                    {"page.url": json_tag["url"]},
-                    {"$set": {"page": page}}
-                )
+                        mongo.collection.update_one(
+                            {"page.url": json_tag["url"]},
+                            {"$set": {"page": page}}
+                        )
 
 
 if __name__ == "__main__":
