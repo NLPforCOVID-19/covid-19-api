@@ -1,26 +1,40 @@
-import os
-import json
-import glob
-import logging
 import copy
-
+import glob
+import itertools
+import json
+import logging
+import os
 from typing import List, Dict
 
-from util import load_config
 from pymongo import MongoClient, DESCENDING
 
-COUNTRY_REGION_MAP = {
-    "eu": "eur",
-    "fr": "eur",
-    "es": "eur",
-    "de": "eur",
-    "in": "asia",
-    "kr": "asia"
+from util import load_config
+
+COUNTRY_COUNTRIES_MAP = {
+    "jp": ["jp"],
+    "cn": ["cn"],
+    "us": ["us"],
+    "eu": ["eu"],
+    "fr": ["fr"],
+    "es": ["es"],
+    "de": ["de"],
+    "in": ["in"],
+    "kr": ["kr"],
+    "eur": ["eu", "fr", "es", "de"],
+    "asia": ["in", "kr"],
 }
-REGION_COUNTRIES_MAP = {
-    region: [country for country, region_ in COUNTRY_REGION_MAP.items() if region_ == region]
-    for region in COUNTRY_REGION_MAP.values()
+COUNTRY_COUNTRIES_MAP["all"] = list(set(itertools.chain(*COUNTRY_COUNTRIES_MAP.values())))
+
+TOPIC_TOPICS_MAP = {
+    "感染状況": ["感染状況"],
+    "予防・緊急事態宣言": ["予防・緊急事態宣言"],
+    "症状・治療・検査など医療情報": ["症状・治療・検査など医療情報"],
+    "経済・福祉政策": ["経済・福祉政策"],
+    "休校・オンライン授業": ["休校・オンライン授業"],
+    "その他": ["その他", "芸能・スポーツ"]
 }
+TOPIC_TOPICS_MAP["all"] = list(set(itertools.chain(*TOPIC_TOPICS_MAP.values())))
+
 TOPIC_CLASSES_MAP = {
     "感染状況": ["感染状況"],
     "予防・緊急事態宣言": ["予防", "都市封鎖", "渡航制限・防疫", "イベント中止"],
@@ -28,8 +42,8 @@ TOPIC_CLASSES_MAP = {
     "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
     "休校・オンライン授業": ["休校・オンライン授業"],
 }
+
 TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
-MAX_USEFUL_PAGES = 10
 
 
 class DBHandler:
@@ -110,101 +124,63 @@ class DBHandler:
         del copied_page["snippets"]
         return copied_page
 
-    def _postprocess_pages(self, filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
-        """Prioritize useful pages and slice a list of filtered pages."""
-        if start < len(filtered_pages):
-            return filtered_pages[start:start + limit]
-        else:
-            return []
-
-    @staticmethod
-    def _reshape_pages_to_topic_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
-        """Given a list of topics, reshape it into a dictionary where each key corresponds to a topic."""
-        topic_pages_map = dict()
-        for page in pages:
-            for page_topic in page["topics"]:
-                topic_pages_map.setdefault(page_topic, []).append(page)
-        return topic_pages_map
-
-    @staticmethod
-    def _reshape_pages_to_country_pages_map(pages: List[dict]) -> Dict[str, List[dict]]:
-        """Given a list of pages, reshape it into a dictionary where each key corresponds to a country."""
-        country_pages_map = dict()
-        for page in pages:
-            page_country = page["country"]
-            country_pages_map.setdefault(page_country, []).append(page)
-        return country_pages_map
-
     def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         """Fetch pages based on given GET parameters."""
         # set default filters
-        filters = [
+        base_filters = [
             # filter out pages that are not about COVID-19
             {"page.is_about_COVID-19": 1},
             # filter out pages that have been manually checked and regarded as not useful ones
             {"$or": [
-                {"page.is_checked": {"$ne": 1}},
+                {"page.is_checked": 0},
                 {"page.is_useful": {"$ne": 0}},
-                {"page.is_about_false_rumor": {"$ne": 0}}
+                {"page.is_about_false_rumor": 1}
             ]},
         ]
-        projection = {"_id": 0}
         sort_ = [("page.orig.timestamp", DESCENDING)]
 
-        preliminary_result = self.collection.find(
-            projection=projection,
-            filter={"page.is_checked": 1},
-            sort=sort_
-        )
         last_crowd_sourcing_time = "2020-01-01T00:00:00.000000"
-        for doc in preliminary_result:
+        for doc in self.collection.find(filter={"page.is_checked": 1}, sort=sort_).limit(1):
             last_crowd_sourcing_time = doc["page"]["orig"]["timestamp"]
-            break
-        filters.append(
+        base_filters.append(
+            # filter out pages that have not been manually checked due to the thinning process
             {"$or": [
-                {"page.is_checked": {"$ne": 0}},
+                {"page.is_checked": 1},
                 {"page.orig.timestamp": {"$gt": last_crowd_sourcing_time}}
             ]}
         )
 
-        # add filters based on the given parameters
-        if topic and topic != "all":
-            topics = [topic]
-            if topic == "その他":
-                topics.append("芸能・スポーツ")
-            filters.append({"page.topics": {"$in": topics}})
-
-        if country and country != "all":
-            countries = [country]
-            countries.extend(REGION_COUNTRIES_MAP.get(country, []))
-            filters.append({"page.country": {"$in": countries}})
-
-        # get documents
-        result = self.collection.find(
-            projection=projection,
-            filter={"$and": filters},
-            sort=sort_
-        )
-        pages = [doc["page"] for doc in result]
-
-        # reshape the results
         if topic and country:
-            reshaped_pages = [self._reshape_page(page) for page in self._postprocess_pages(pages, start, limit)]
+            topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
+            country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
+            filter_ = {"$and": base_filters + topic_filters + country_filters}
+            cur = self.collection.find(filter=filter_, sort=sort_)
+            reshaped_pages = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         elif topic:
-            reshaped_pages = {
-                COUNTRY_REGION_MAP.get(_country, _country):
-                    [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
-                for _country, _country_pages in self._reshape_pages_to_country_pages_map(pages).items()
-            }
+            reshaped_pages = {}
+            topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
+            for country, countries in COUNTRY_COUNTRIES_MAP.items():
+                if country == 'all':
+                    continue
+                country_filters = [{"page.country": {"$in": countries}}]
+                filter_ = {"$and": base_filters + topic_filters + country_filters}
+                cur = self.collection.find(filter=filter_, sort=sort_)
+                reshaped_pages[country] = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         else:
-            reshaped_pages = {
-                _topic: {
-                    COUNTRY_REGION_MAP.get(_country, _country):
-                        [self._reshape_page(page) for page in self._postprocess_pages(_country_pages, start, limit)]
-                    for _country, _country_pages in self._reshape_pages_to_country_pages_map(_topic_pages).items()
-                }
-                for _topic, _topic_pages in self._reshape_pages_to_topic_pages_map(pages).items()
-            }
+            reshaped_pages = {}
+            for topic, topics in TOPIC_TOPICS_MAP.items():
+                if topic == 'all':
+                    continue
+                topic_filters = [{"page.topics": {"$in": topics}}]
+                reshaped_pages[topic] = {}
+                for country, countries in COUNTRY_COUNTRIES_MAP.items():
+                    if country == 'all':
+                        continue
+                    country_filters = [{"page.country": {"$in": countries}}]
+                    filter_ = {"$and": base_filters + topic_filters + country_filters}
+                    cur = self.collection.find(filter=filter_, sort=sort_)
+                    reshaped_pages[topic][country] = \
+                        [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
 
