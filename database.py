@@ -112,21 +112,8 @@ class DBHandler:
 
     def _postprocess_pages(self, filtered_pages: List[dict], start: int, limit: int) -> List[dict]:
         """Prioritize useful pages and slice a list of filtered pages."""
-        useful_whitelist_pages, useful_pages, other_pages = [], [], []
         if start < len(filtered_pages):
-            for i, filtered_page in enumerate(filtered_pages):
-                if len(useful_pages) == MAX_USEFUL_PAGES:
-                    other_pages.extend(filtered_pages[i:])
-                    break
-                elif filtered_page['is_useful'] == 2:
-                    if filtered_page['url'] in self.useful_white_list:
-                        useful_whitelist_pages.append(filtered_page)
-                    else:
-                        useful_pages.append(filtered_page)
-                else:
-                    other_pages.append(filtered_page)
-            postprocessed_pages = useful_whitelist_pages + useful_pages + other_pages
-            return postprocessed_pages[start:start + limit]
+            return filtered_pages[start:start + limit]
         else:
             return []
 
