@@ -129,7 +129,13 @@ class DBHandler:
         # set default filters
         base_filters = [
             # filter out pages that are not about COVID-19
-            {"page.is_about_COVID-19": 1},
+            {"$or": [
+                {"page.country": {"$ne": "jp"}},  # already filtered
+                {"$and": [
+                    {"page.country": "jp"},
+                    {"page.is_about_COVID-19": 1}
+                ]}
+            ]},
             # filter out pages that have been manually checked and regarded as not useful ones
             {"$or": [
                 {"page.is_checked": 0},
