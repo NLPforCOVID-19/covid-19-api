@@ -63,14 +63,24 @@ class DBHandler:
                     topics.append(topic)
             return topics
 
+        def extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
+            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
+                for class_ in classes_about_topic:
+                    for snippet in snippets.get(class_, []):
+                        return snippet
+            return ''
+
         def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
             reshaped = {}
+            general_snippet = extract_general_snippet(snippets)
             for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
                 snippets_about_topic = []
                 for class_ in classes_about_topic:
                     snippets_about_topic += snippets.get(class_, [])
                 if snippets_about_topic:
                     reshaped[topic] = snippets_about_topic[0].strip()
+                elif general_snippet:
+                    reshaped[topic] = general_snippet
             return reshaped
 
         is_about_covid_19 = 1 if document["classes"]["COVID-19関連"] else 0
