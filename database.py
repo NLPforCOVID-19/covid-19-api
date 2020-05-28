@@ -20,6 +20,7 @@ COUNTRY_COUNTRIES_MAP = {
     "de": ["de"],
     "in": ["in"],
     "kr": ["kr"],
+    "int": ["int"],
     "eur": ["eu", "fr", "es", "de"],
     "asia": ["in", "kr"],
 }
