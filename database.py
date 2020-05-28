@@ -134,38 +134,9 @@ class DBHandler:
         del copied_page["snippets"]
         return copied_page
 
-    def get_filtered_pages(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
-        """Fetch pages based on given GET parameters."""
-        # set default filters
-        base_filters = [
-            # filter out pages that are not about COVID-19
-            {"$or": [
-                {"page.country": {"$ne": "jp"}},  # already filtered
-                {"$and": [
-                    {"page.country": "jp"},
-                    {"page.is_about_COVID-19": 1}
-                ]}
-            ]},
-            # filter out pages that have been manually checked and regarded as not useful ones
-            {"$or": [
-                {"page.is_checked": 0},
-                {"page.is_useful": {"$ne": 0}},
-                {"page.is_about_false_rumor": 1}
-            ]},
-        ]
-        sort_ = [("page.orig.timestamp", DESCENDING)]
-
-        last_crowd_sourcing_time = "2020-01-01T00:00:00.000000"
-        for doc in self.collection.find(filter={"page.is_checked": 1}, sort=sort_).limit(1):
-            last_crowd_sourcing_time = doc["page"]["orig"]["timestamp"]
-        base_filters.append(
-            # filter out pages that have not been manually checked due to the thinning process
-            {"$or": [
-                {"page.is_checked": 1},
-                {"page.orig.timestamp": {"$gt": last_crowd_sourcing_time}}
-            ]}
-        )
-
+    def classes(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
+        base_filters = self.get_base_filters()
+        sort_ = self.get_sort_metrics()
         if topic and country:
             topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
             country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
@@ -199,6 +170,73 @@ class DBHandler:
                         [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
+    def countries(self, country: str, topic: str, start: int, limit: int) -> List[dict]:
+        base_filters = self.get_base_filters()
+        sort_ = self.get_sort_metrics()
+        if country and topic:
+            country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
+            topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
+            filter_ = {"$and": base_filters + country_filters + topic_filters}
+            cur = self.collection.find(filter=filter_, sort=sort_)
+            reshaped_pages = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+        elif country:
+            reshaped_pages = {}
+            country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
+            for topic, topics in TOPIC_TOPICS_MAP.items():
+                if topic == 'all':
+                    continue
+                topic_filters = [{"page.topics": {"$in": topics}}]
+                filter_ = {"$and": base_filters + topic_filters + country_filters}
+                cur = self.collection.find(filter=filter_, sort=sort_)
+                reshaped_pages[topic] = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+        else:
+            reshaped_pages = {}
+            for country, countries in COUNTRY_COUNTRIES_MAP.items():
+                if country == 'all':
+                    continue
+                country_filters = [{"page.country": {"$in": countries}}]
+                reshaped_pages[country] = {}
+                for topic, topics in TOPIC_TOPICS_MAP.items():
+                    if topic == 'all':
+                        continue
+                    topic_filters = [{"page.topics": {"$in": topics}}]
+                    filter_ = {"$and": base_filters + topic_filters + country_filters}
+                    cur = self.collection.find(filter=filter_, sort=sort_)
+                    reshaped_pages[country][topic] = \
+                        [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+        return reshaped_pages
+
+    def get_base_filters(self):
+        base_filters = [
+            # filter out pages that are not about COVID-19
+            {"$or": [
+                {"page.country": {"$ne": "jp"}},  # already filtered
+                {"$and": [
+                    {"page.country": "jp"},
+                    {"page.is_about_COVID-19": 1}
+                ]}
+            ]},
+            # filter out pages that have been manually checked and regarded as not useful ones
+            {"$or": [
+                {"page.is_checked": 0},
+                {"page.is_useful": {"$ne": 0}},
+                {"page.is_about_false_rumor": 1}
+            ]},
+        ]
+        last_crowd_sourcing_time = "2020-01-01T00:00:00.000000"
+        for doc in self.collection.find(filter={"page.is_checked": 1}, sort=self.get_sort_metrics()).limit(1):
+            last_crowd_sourcing_time = doc["page"]["orig"]["timestamp"]
+        base_filters.append(
+            # filter out pages that have not been manually checked due to the thinning process
+            {"$or": [
+                {"page.is_checked": 1},
+                {"page.orig.timestamp": {"$gt": last_crowd_sourcing_time}}
+            ]}
+        )
+        return base_filters
+
+    def get_sort_metrics(self):
+        return [("page.orig.timestamp", DESCENDING)]
 
 def main():
     cfg = load_config()

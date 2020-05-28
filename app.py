@@ -57,7 +57,22 @@ def classes(class_=None, country=None):
         limit = int(limit)
     else:
         raise InvalidUsage('Parameters `start` and `limit` must be integers')
-    filtered_pages = mongo.get_filtered_pages(topic=class_, country=country, start=start, limit=limit)
+    filtered_pages = mongo.classes(topic=class_, country=country, start=start, limit=limit)
+    return jsonify(filtered_pages)
+
+
+@app.route('/countries')
+@app.route('/countries/<country>')
+@app.route('/countries/<country>/<class_>')
+def countries(country=None, class_=None):
+    start = request.args.get("start", "0")  # NOTE: set the default value as a `str` object
+    limit = request.args.get("limit", "10")  # NOTE: set the default value as a `str` object
+    if start.isdecimal() and limit.isdecimal():
+        start = int(start)
+        limit = int(limit)
+    else:
+        raise InvalidUsage('Parameters `start` and `limit` must be integers')
+    filtered_pages = mongo.countries(country=country, topic=class_, start=start, limit=limit)
     return jsonify(filtered_pages)
 
 
