@@ -9,11 +9,11 @@ from util import load_config
 from database import DBHandler
 
 here = os.path.dirname(os.path.abspath(__file__))
+cfg = load_config()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=cfg["access_control_allow_origin"])
 
-cfg = load_config()
 with open(cfg["crowdsourcing"]["useful_white_list"], mode='r') as f:
     useful_white_list = [line.strip() for line in f.readlines()]
 mongo = DBHandler(

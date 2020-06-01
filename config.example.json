@@ -1,5 +1,6 @@
 {
   "activator": "<path-to-virtualenv>/bin/activate_this.py",
+  "access_control_allow_origin": "http://localhost:3000",
   "database": {
     "input_page_path": "<path-to-input-page-dir>/output.jsonl",
     "host": "<host>",
