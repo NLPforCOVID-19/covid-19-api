@@ -82,11 +82,15 @@ def meta():
         meta_info = json.load(f)
 
     with open(os.path.join(here, "data", "stats.json")) as f:
-        stats_info = json.load(f)
+        stats_info = json.load(f)["stats"]
+
+    with open(os.path.join(here, "data", "sources.json")) as f:
+        sources_info = json.load(f)
 
     country_code_index_map = {country["country"]: i for i, country in enumerate(meta_info["countries"])}
-    for country_code, stats in stats_info["stats"].items():
-        meta_info["countries"][country_code_index_map[country_code]]["stats"] = stats
+    for country_code in stats_info:
+        meta_info["countries"][country_code_index_map[country_code]]["stats"] = stats_info[country_code]
+        meta_info["countries"][country_code_index_map[country_code]]["sources"] = sources_info[country_code]
 
     return jsonify(meta_info)
 
