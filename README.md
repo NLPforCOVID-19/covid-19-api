@@ -72,6 +72,14 @@ Run the following script to initialize and also update the statistics.
 $ pipenv run python stats.py
 ```
 
+#### Information Sources
+
+Run the following script to initialize and also update the information sources.
+
+```
+$ pipenv run python sources.py
+```
+
 ## Run
 
 To start this API server, run the following command.
