@@ -42,6 +42,7 @@ TOPIC_CLASSES_MAP = {
     "症状・治療・検査など医療情報": ["検査", "治療"],
     "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
     "休校・オンライン授業": ["休校・オンライン授業"],
+    "その他": ["その他"]
 }
 
 TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
@@ -95,6 +96,7 @@ class DBHandler:
             "timestamp": document["ja_translated"]["timestamp"],
         }
         url = document["url"]
+        document["classes"]["その他"], document["snippets"]["その他"] = 0, []
         topics = convert_class_flag_map_to_topics(document["classes"])
         snippets = reshape_snippets(document["snippets"])
         is_checked = 0
@@ -236,8 +238,10 @@ class DBHandler:
         )
         return base_filters
 
-    def get_sort_metrics(self):
+    @staticmethod
+    def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
+
 
 def main():
     cfg = load_config()
