@@ -36,15 +36,6 @@ TOPIC_TOPICS_MAP = {
 }
 TOPIC_TOPICS_MAP["all"] = list(set(itertools.chain(*TOPIC_TOPICS_MAP.values())))
 
-TOPIC_CLASSES_MAP = {
-    "感染状況": ["感染状況"],
-    "予防・緊急事態宣言": ["予防", "都市封鎖", "渡航制限・防疫", "イベント中止"],
-    "症状・治療・検査など医療情報": ["検査", "治療"],
-    "経済・福祉政策": ["経済への影響", "就労", "モノの不足"],
-    "休校・オンライン授業": ["休校・オンライン授業"],
-    "その他": ["その他"]
-}
-
 TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
 
 
@@ -58,34 +49,27 @@ class DBHandler:
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
 
-        def convert_class_flag_map_to_topics(class_flag_map: Dict[str, int]) -> List[str]:
-            topics = []
-            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
-                if any(class_flag_map[class_] for class_ in classes_about_topic):
-                    topics.append(topic)
-            return topics
-
-        def extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
-            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
-                for class_ in classes_about_topic:
-                    for snippet in snippets.get(class_, []):
+        def _extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
+            for rep_topic, topics in TOPIC_TOPICS_MAP.items():
+                for topic in topics:
+                    for snippet in snippets.get(topic, []):
                         return snippet
             return ''
 
-        def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
+        def _reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
             reshaped = {}
-            general_snippet = extract_general_snippet(snippets)
-            for topic, classes_about_topic in TOPIC_CLASSES_MAP.items():
+            general_snippet = _extract_general_snippet(snippets)
+            for rep_topic, topics in TOPIC_TOPICS_MAP.items():
                 snippets_about_topic = []
-                for class_ in classes_about_topic:
-                    snippets_about_topic += snippets.get(class_, [])
+                for topic in topics:
+                    snippets_about_topic += snippets.get(topic, [])
                 if snippets_about_topic:
-                    reshaped[topic] = snippets_about_topic[0].strip()
+                    reshaped[rep_topic] = snippets_about_topic[0].strip()
                 elif general_snippet:
-                    reshaped[topic] = general_snippet
+                    reshaped[rep_topic] = general_snippet
             return reshaped
 
-        is_about_covid_19 = 1 if document["classes"]["COVID-19関連"] else 0
+        is_about_covid_19 = document["classes"]["is_about_COVID-19"]
         country = document["country"]
         orig = {
             "title": document["orig"]["title"].strip(),
@@ -96,13 +80,13 @@ class DBHandler:
             "timestamp": document["ja_translated"]["timestamp"],
         }
         url = document["url"]
-        document["classes"]["その他"], document["snippets"]["その他"] = 0, []
-        topics = convert_class_flag_map_to_topics(document["classes"])
-        snippets = reshape_snippets(document["snippets"])
+
+        topics = [label for label in document["labels"] if label != "is_about_COVID-19"]
+        snippets = _reshape_snippets(document["snippets"])
         is_checked = 0
-        is_useful = -1
-        is_clear = -1
-        is_about_false_rumor = -1
+        is_useful = document["classes"]["is_useful"]
+        is_clear = document["classes"]["is_clear"]
+        is_about_false_rumor = document["classes"]["is_about_false_rumor"]
         document_ = {
             "country": country,
             "orig": orig,
@@ -296,8 +280,7 @@ def main():
                         old_snippets = page["snippets"]
                         new_snippets = {}
                         for new_topic in new_topics:
-                            new_snippets[new_topic] = \
-                                old_snippets[new_topic] if new_topic in old_snippets.keys() else ""
+                            new_snippets[new_topic] = old_snippets.get(new_topic, "")
 
                         mongo.collection.update_one(
                             {"page.url": json_tag["url"]},
