@@ -75,10 +75,13 @@ class DBHandler:
             "title": document["orig"]["title"].strip(),
             "timestamp": document["orig"]["timestamp"],
         }
-        ja_translated = {
-            "title": document["ja_translated"]["title"].strip(),
-            "timestamp": document["ja_translated"]["timestamp"],
-        }
+        if document["ja_translated"]["title"]:
+            ja_translated = {
+                "title": document["ja_translated"]["title"].strip(),
+                "timestamp": document["ja_translated"]["timestamp"],
+            }
+        else:
+            return None
         url = document["url"]
 
         topics = [label for label in document["labels"] if label != "is_about_COVID-19"]
