@@ -87,7 +87,8 @@ class DBHandler:
         topics = [label for label in document["labels"] if label != "is_about_COVID-19"]
         snippets = _reshape_snippets(document["snippets"])
         is_checked = 0
-        is_useful = document["classes"]["is_useful"]
+        # is_useful = document["classes"]["is_useful"]
+        is_useful = -1
         is_clear = document["classes"]["is_clear"]
         is_about_false_rumor = document["classes"]["is_about_false_rumor"]
         document_ = {
