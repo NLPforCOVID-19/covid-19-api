@@ -93,6 +93,7 @@ class DBHandler:
         is_about_false_rumor = document["classes"]["is_about_false_rumor"]
         document_ = {
             "country": country,
+            "displayed_country": country,
             "orig": orig,
             "ja_translated": ja_translated,
             "url": url,
@@ -229,6 +230,17 @@ class DBHandler:
     @staticmethod
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
+
+    def update_page(self, url, new_country, new_topics):
+        self.collection.update_one(
+            {"page.url": url},
+            {"$set": {
+                "page.displayed_country": new_country,
+                "page.topics": new_topics
+            }
+            },
+            upsert=True
+        )
 
 
 def main():

@@ -76,6 +76,14 @@ def countries(country=None, class_=None):
     return jsonify(filtered_pages)
 
 
+@app.route('/update', methods=['POST'])
+def update():
+    url = request.form.get('url')
+    new_country = request.form.get('new_displayed_country')
+    new_classes = request.form.getlist('new_classes')
+    mongo.update_page(url=url, new_country=new_country, new_topics=new_classes)
+
+
 @app.route('/meta')
 def meta():
     with open(os.path.join(here, "data", "meta.json")) as f:
