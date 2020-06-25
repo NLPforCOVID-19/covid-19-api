@@ -91,6 +91,9 @@ class DBHandler:
         is_useful = -1
         is_clear = document["classes"]["is_clear"]
         is_about_false_rumor = document["classes"]["is_about_false_rumor"]
+
+        domain = document["domain"]
+        domain_label = document["domain_label"]
         document_ = {
             "country": country,
             "orig": orig,
@@ -102,7 +105,9 @@ class DBHandler:
             "is_about_COVID-19": is_about_covid_19,
             "is_useful": is_useful,
             "is_clear": is_clear,
-            "is_about_false_rumor": is_about_false_rumor
+            "is_about_false_rumor": is_about_false_rumor,
+            "domain": domain,
+            "domain_label": domain_label
         }
 
         existing_page = self.collection.find_one({"page.url": url})
