@@ -231,7 +231,7 @@ class DBHandler:
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
 
-    def update_page(self, url, new_country, new_topics):
+    def update_page(self, url, new_country, new_topics, category_check_log_path):
         self.collection.update_one(
             {"page.url": url},
             {"$set": {
@@ -241,6 +241,11 @@ class DBHandler:
             },
             upsert=True
         )
+        updated = {'url': url, 'new_country': new_country, 'new_topics': new_topics}
+        with open(category_check_log_path, mode='a') as f:
+            json.dump(updated, f, ensure_ascii=False)
+            f.write('\n')
+        return updated
 
 
 def main():
@@ -302,6 +307,20 @@ def main():
                             {"page.url": json_tag["url"]},
                             {"$set": {"page": page}}
                         )
+    # add category-checked pages
+    with open(cfg["database"]["category_check_log_path"], mode='r') as f:
+        for line in f:
+            category_checked_page = json.loads(line.strip())
+            existing_page = mongo.collection.find_one({"page.url": category_checked_page['url']})
+            if existing_page:
+                mongo.collection.update_one(
+                    {"page.url": category_checked_page['url']},
+                    {"$set": {
+                        "page.displayed_country": category_checked_page['new_country'],
+                        "page.topics": category_checked_page['new_topics']
+                    }
+                    },
+                )
 
 
 if __name__ == "__main__":

@@ -41,6 +41,22 @@ class InvalidUsage(Exception):
         return rv
 
 
+class InvalidPassword(Exception):
+    status_code = 403
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
 @app.route('/')
 def index():
     return "it works"
@@ -76,12 +92,21 @@ def countries(country=None, class_=None):
     return jsonify(filtered_pages)
 
 
-@app.route('/update', methods=['POST'])
+@app.route('/update', methods=["POST"])
 def update():
-    url = request.form.get('url')
-    new_country = request.form.get('new_displayed_country')
-    new_classes = request.form.getlist('new_classes')
-    mongo.update_page(url=url, new_country=new_country, new_topics=new_classes)
+    data = request.get_json()
+    password = data.get('password')
+    if password == cfg['password']:
+        url = data.get('url')
+        new_country = data.get('new_displayed_country')
+        new_classes = data.get('new_classes')
+        updated = mongo.update_page(url=url,
+                                    new_country=new_country,
+                                    new_topics=new_classes,
+                                    category_check_log_path=cfg['database']['category_check_log_path'])
+        return jsonify(updated)
+    else:
+        raise InvalidPassword('The password is not correct')
 
 
 @app.route('/meta')
@@ -105,6 +130,13 @@ def meta():
 
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
+@app.errorhandler(InvalidPassword)
+def handle_invalid_password(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
