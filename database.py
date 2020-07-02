@@ -34,6 +34,11 @@ TOPIC_TOPICS_MAP = {
     "教育関連": ["休校・オンライン授業"],
     "その他": ["その他", "芸能・スポーツ"]
 }
+TOPICS_TOPIC_MAP = {
+    internal_topic: display_topic
+    for display_topic, internal_topics in TOPIC_TOPICS_MAP.items()
+    for internal_topic in internal_topics
+}
 TOPIC_TOPICS_MAP["all"] = list(set(itertools.chain(*TOPIC_TOPICS_MAP.values())))
 
 TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
@@ -124,7 +129,7 @@ class DBHandler:
     def _reshape_page(page: dict) -> dict:
         copied_page = copy.deepcopy(page)
         copied_page["topics"] = [
-            {"name": topic, "snippet": copied_page["snippets"].get(topic, "")}
+            {"name": TOPICS_TOPIC_MAP[topic], "snippet": copied_page["snippets"].get(topic, "")}
             for topic in copied_page["topics"]
         ]
         del copied_page["snippets"]
