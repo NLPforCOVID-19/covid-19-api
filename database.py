@@ -129,8 +129,7 @@ class DBHandler:
     def _reshape_page(page: dict) -> dict:
         copied_page = copy.deepcopy(page)
         copied_page["topics"] = [
-            {"name": TOPICS_TOPIC_MAP[topic], "snippet": copied_page["snippets"].get(topic, "")}
-            for topic in copied_page["topics"]
+            {"name": TOPICS_TOPIC_MAP.get(topic, topic), "snippet": copied_page["snippets"].get(topic, "")} for topic in copied_page["topics"]
         ]
         del copied_page["snippets"]
         return copied_page
