@@ -28,10 +28,10 @@ COUNTRY_COUNTRIES_MAP["all"] = list(set(itertools.chain(*COUNTRY_COUNTRIES_MAP.v
 
 TOPIC_TOPICS_MAP = {
     "感染状況": ["感染状況"],
-    "予防・緊急事態宣言": ["予防・緊急事態宣言"],
+    "予防・防疫・緩和": ["予防・緊急事態宣言"],
     "症状・治療・検査など医療情報": ["症状・治療・検査など医療情報"],
     "経済・福祉政策": ["経済・福祉政策"],
-    "休校・オンライン授業": ["休校・オンライン授業"],
+    "教育関連": ["休校・オンライン授業"],
     "その他": ["その他", "芸能・スポーツ"]
 }
 TOPIC_TOPICS_MAP["all"] = list(set(itertools.chain(*TOPIC_TOPICS_MAP.values())))
