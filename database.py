@@ -93,8 +93,7 @@ class DBHandler:
         topics = [label for label in document["labels"] if label != "is_about_COVID-19"]
         snippets = _reshape_snippets(document["snippets"])
         is_checked = 0
-        # is_useful = document["classes"]["is_useful"]
-        is_useful = -1
+        is_useful = document["classes"]["is_useful"]
         is_clear = document["classes"]["is_clear"]
         is_about_false_rumor = document["classes"]["is_about_false_rumor"]
         document_ = {
@@ -203,7 +202,8 @@ class DBHandler:
                         [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
-    def get_base_filters(self):
+    @staticmethod
+    def get_base_filters():
         base_filters = [
             # filter out pages that are not about COVID-19
             {"$or": [
@@ -220,35 +220,19 @@ class DBHandler:
                 {"page.is_about_false_rumor": 1}
             ]},
         ]
-        last_crowd_sourcing_time = "2020-01-01T00:00:00.000000"
-        for doc in self.collection.find(filter={"page.is_checked": 1}, sort=self.get_sort_metrics()).limit(1):
-            last_crowd_sourcing_time = doc["page"]["orig"]["timestamp"]
-        base_filters.append(
-            # filter out pages that have not been manually checked due to the thinning process
-            {"$or": [
-                {"page.is_checked": 1},
-                {"page.orig.timestamp": {"$gt": last_crowd_sourcing_time}}
-            ]}
-        )
         return base_filters
 
     @staticmethod
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
 
-    def update_page(self,
-                    url,
-                    is_about_covid_19,
-                    is_useful,
-                    new_country,
-                    new_topics,
-                    notes,
-                    category_check_log_path):
+    def update_page(self, url, is_about_covid_19, is_useful, new_country, new_topics, notes, category_check_log_path):
         self.collection.update_one(
             {"page.url": url},
             {"$set": {
-                "page.is_about_COVID-19": is_about_covid_19,
-                "page.is_useful": is_useful,
+                "page.is_about_COVID-19": 1 if is_about_covid_19 else 0,
+                "page.is_useful": 1 if is_useful else 0,
+                "page.is_checked": 1,
                 "page.displayed_country": new_country,
                 "page.topics": new_topics
             }
@@ -257,7 +241,8 @@ class DBHandler:
         )
         updated = {
             "url": url,
-            "is_about_COVID-19": is_about_covid_19,
+            "is_about_COVID-19": 1 if is_about_covid_19 else 0,
+            "is_useful": 1 if is_useful else 0,
             "new_country": new_country,
             "new_topics": new_topics,
             "notes": notes,
@@ -297,53 +282,55 @@ def main():
     logger.log(20, f"Number of pages: {num_docs}")
 
     # reflect the crowdsourcing results
-    if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
-        for input_path in sorted(glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/20*.jsonl')):
-            file_name = os.path.splitext(os.path.basename(input_path))[0]
-            crowd_sourcing_date = file_name.split('_')[0]
-            crowd_sourcing_timestamp = \
-                f"{crowd_sourcing_date[:4]}-{crowd_sourcing_date[4:6]}-{crowd_sourcing_date[6:]}T00:00:00.000000"
-
-            with open(input_path, 'r') as f:
-                json_tags = [json.loads(line.strip()) for line in f]
-            for json_tag in json_tags:
-                search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
-                if search_result:
-                    page = search_result["page"]
-                    existing_timestamp = page["orig"]["timestamp"]
-                    if crowd_sourcing_timestamp > existing_timestamp:
-                        page["is_checked"] = 1
-                        for tag in TAGS:
-                            page[tag] = json_tag["tags"][tag]
-
-                        new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
-                        page["topics"] = new_topics
-
-                        old_snippets = page["snippets"]
-                        new_snippets = {}
-                        for new_topic in new_topics:
-                            new_snippets[new_topic] = old_snippets.get(new_topic, "")
-
-                        mongo.collection.update_one(
-                            {"page.url": json_tag["url"]},
-                            {"$set": {"page": page}}
-                        )
+    # if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
+    #     for input_path in sorted(glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/20*.jsonl')):
+    #         file_name = os.path.splitext(os.path.basename(input_path))[0]
+    #         crowd_sourcing_date = file_name.split('_')[0]
+    #         crowd_sourcing_timestamp = \
+    #             f"{crowd_sourcing_date[:4]}-{crowd_sourcing_date[4:6]}-{crowd_sourcing_date[6:]}T00:00:00.000000"
+    #
+    #         with open(input_path, 'r') as f:
+    #             json_tags = [json.loads(line.strip()) for line in f]
+    #         for json_tag in json_tags:
+    #             search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
+    #             if search_result:
+    #                 page = search_result["page"]
+    #                 existing_timestamp = page["orig"]["timestamp"]
+    #                 if crowd_sourcing_timestamp > existing_timestamp:
+    #                     page["is_checked"] = 1
+    #                     for tag in TAGS:
+    #                         page[tag] = json_tag["tags"][tag]
+    #
+    #                     new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
+    #                     page["topics"] = new_topics
+    #
+    #                     old_snippets = page["snippets"]
+    #                     new_snippets = {}
+    #                     for new_topic in new_topics:
+    #                         new_snippets[new_topic] = old_snippets.get(new_topic, "")
+    #
+    #                     mongo.collection.update_one(
+    #                         {"page.url": json_tag["url"]},
+    #                         {"$set": {"page": page}}
+    #                     )
     # add category-checked pages
     with open(cfg["database"]["category_check_log_path"], mode='r') as f:
         for line in f:
-            category_checked_page = json.loads(line.strip())
-            existing_page = mongo.collection.find_one({"page.url": category_checked_page['url']})
-            if existing_page:
-                mongo.collection.update_one(
-                    {"page.url": category_checked_page['url']},
-                    {"$set": {
-                        "page.is_about_COVID-19": category_checked_page["is_about_COVID-19"],
-                        "page.is_useful": category_checked_page["is_useful"],
-                        "page.displayed_country": category_checked_page["new_country"],
-                        "page.topics": category_checked_page["new_topics"]
-                    }
-                    },
-                )
+            if line.strip():
+                category_checked_page = json.loads(line.strip())
+                existing_page = mongo.collection.find_one({"page.url": category_checked_page['url']})
+                if existing_page:
+                    mongo.collection.update_one(
+                        {"page.url": category_checked_page['url']},
+                        {"$set": {
+                            "page.is_about_COVID-19": category_checked_page["is_about_COVID-19"],
+                            "page.is_useful": category_checked_page["is_useful"],
+                            "page.is_checked": 1,
+                            "page.displayed_country": category_checked_page["new_country"],
+                            "page.topics": category_checked_page["new_topics"]
+                        }
+                        },
+                    )
 
 
 if __name__ == "__main__":
