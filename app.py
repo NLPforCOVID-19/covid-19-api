@@ -2,6 +2,7 @@
 import json
 import os
 
+from mojimoji import han_to_zen
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -27,6 +28,22 @@ mongo = DBHandler(
 
 class InvalidUsage(Exception):
     status_code = 400
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
+class InvalidPassword(Exception):
+    status_code = 403
 
     def __init__(self, message, status_code=None, payload=None):
         Exception.__init__(self)
@@ -76,6 +93,29 @@ def countries(country=None, class_=None):
     return jsonify(filtered_pages)
 
 
+@app.route('/update', methods=["POST"])
+def update():
+    data = request.get_json()
+    password = data.get('password')
+    if password == cfg['password']:
+        url = data.get('url')
+        is_about_covid_19 = data.get('is_about_COVID-19')
+        is_useful = data.get('is_useful')
+        new_country = data.get('new_displayed_country')
+        new_classes = data.get('new_classes')
+        notes = han_to_zen(str(data.get('notes')))
+        updated = mongo.update_page(url=url,
+                                    is_about_covid_19=is_about_covid_19,
+                                    is_useful=is_useful,
+                                    new_country=new_country,
+                                    new_topics=new_classes,
+                                    notes=notes,
+                                    category_check_log_path=cfg['database']['category_check_log_path'])
+        return jsonify(updated)
+    else:
+        raise InvalidPassword('The password is not correct')
+
+
 @app.route('/meta')
 def meta():
     with open(os.path.join(here, "data", "meta.json")) as f:
@@ -97,6 +137,13 @@ def meta():
 
 @app.errorhandler(InvalidUsage)
 def handle_invalid_usage(error):
+    response = jsonify(error.to_dict())
+    response.status_code = error.status_code
+    return response
+
+
+@app.errorhandler(InvalidPassword)
+def handle_invalid_password(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response

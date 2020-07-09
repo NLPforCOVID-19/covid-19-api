@@ -7,11 +7,13 @@
     "port": "<port> (NOTE: This value must be an integer. Remove double-quotes.)",
     "db_name": "<db-name>",
     "collection_name": "<collection-name>",
-    "log_path": "<path-to-log-dir>/update.log"
+    "log_path": "<path-to-log-dir>/update.log",
+    "category_check_log_path": "<path-to-log-dir>/category_checked_pages.jsonl"
   },
   "crowdsourcing": {
     "result_dir": "<path-to-result-dir>",
     "useful_white_list": "<path-to-white-list-of-useful-pages>"
   },
-  "source": "<path-to-information-source-list>"
+  "source": "<path-to-information-source-list>",
+  "password": "<password>"
 }
