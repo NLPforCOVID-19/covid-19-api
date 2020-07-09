@@ -97,8 +97,8 @@ class DBHandler:
         is_clear = document["classes"]["is_clear"]
         is_about_false_rumor = document["classes"]["is_about_false_rumor"]
 
-        domain = document["domain"]
-        domain_label = document["domain_label"]
+        domain = document.get("domain", "")
+        domain_label = document.get("domain_label", "")
         document_ = {
             "country": country,
             "displayed_country": country,
