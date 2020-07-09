@@ -2,6 +2,7 @@
 import json
 import os
 
+from mojimoji import han_to_zen
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -98,11 +99,17 @@ def update():
     password = data.get('password')
     if password == cfg['password']:
         url = data.get('url')
+        is_about_covid_19 = data.get('is_about_COVID-19')
+        is_useful = data.get('is_useful')
         new_country = data.get('new_displayed_country')
         new_classes = data.get('new_classes')
+        notes = han_to_zen(str(data.get('notes')))
         updated = mongo.update_page(url=url,
+                                    is_about_covid_19=is_about_covid_19,
+                                    is_useful=is_useful,
                                     new_country=new_country,
                                     new_topics=new_classes,
+                                    notes=notes,
                                     category_check_log_path=cfg['database']['category_check_log_path'])
         return jsonify(updated)
     else:

@@ -4,6 +4,7 @@ import itertools
 import json
 import logging
 import os
+from datetime import datetime
 from typing import List, Dict
 
 from pymongo import MongoClient, DESCENDING
@@ -235,17 +236,33 @@ class DBHandler:
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
 
-    def update_page(self, url, new_country, new_topics, category_check_log_path):
+    def update_page(self,
+                    url,
+                    is_about_covid_19,
+                    is_useful,
+                    new_country,
+                    new_topics,
+                    notes,
+                    category_check_log_path):
         self.collection.update_one(
             {"page.url": url},
             {"$set": {
+                "page.is_about_COVID-19": is_about_covid_19,
+                "page.is_useful": is_useful,
                 "page.displayed_country": new_country,
                 "page.topics": new_topics
             }
             },
             upsert=True
         )
-        updated = {'url': url, 'new_country': new_country, 'new_topics': new_topics}
+        updated = {
+            "url": url,
+            "is_about_COVID-19": is_about_covid_19,
+            "new_country": new_country,
+            "new_topics": new_topics,
+            "notes": notes,
+            "time": datetime.now().isoformat()
+        }
         with open(category_check_log_path, mode='a') as f:
             json.dump(updated, f, ensure_ascii=False)
             f.write('\n')
@@ -320,8 +337,10 @@ def main():
                 mongo.collection.update_one(
                     {"page.url": category_checked_page['url']},
                     {"$set": {
-                        "page.displayed_country": category_checked_page['new_country'],
-                        "page.topics": category_checked_page['new_topics']
+                        "page.is_about_COVID-19": category_checked_page["is_about_COVID-19"],
+                        "page.is_useful": category_checked_page["is_useful"],
+                        "page.displayed_country": category_checked_page["new_country"],
+                        "page.topics": category_checked_page["new_topics"]
                     }
                     },
                 )
