@@ -1,9 +1,7 @@
 import copy
-import glob
 import itertools
 import json
 import logging
-import os
 from datetime import datetime
 from typing import List, Dict
 
@@ -128,13 +126,15 @@ class DBHandler:
 
     @staticmethod
     def _reshape_page(page: dict) -> dict:
-        copied_page = copy.deepcopy(page)
-        copied_page["topics"] = [
-            {"name": TOPICS_TOPIC_MAP.get(topic, topic), "snippet": copied_page["snippets"].get(topic, "")}
-            for topic in copied_page["topics"]
+        page["topics"] = [
+            {
+                "name": TOPICS_TOPIC_MAP.get(topic, topic),
+                "snippet": page["snippets"].get(TOPICS_TOPIC_MAP.get(topic, topic), "")
+            }
+            for topic in page["topics"]
         ]
-        del copied_page["snippets"]
-        return copied_page
+        del page["snippets"]
+        return page
 
     def classes(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
         base_filters = self.get_base_filters()
