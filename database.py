@@ -231,25 +231,29 @@ class DBHandler:
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
 
-    def update_page(self, url, is_about_covid_19, is_useful, new_ecountry, new_etopics, notes, category_check_log_path):
+    def update_page(self, url, is_about_covid_19, is_useful, ecountry, etopics, notes, category_check_log_path):
+        new_is_about_covid_19 = 1 if is_about_covid_19 else 0
+        new_is_useful = 1 if is_useful else 0
+        new_ecountry = ECOUNTRY_ICOUNTRIES_MAP[ecountry][0]
+        new_etopics = [ETOPIC_ITOPICS_MAP[etopic][0] for etopic in etopics]
+
         self.collection.update_one(
             {"page.url": url},
             {"$set": {
-                "page.is_about_COVID-19": 1 if is_about_covid_19 else 0,
-                "page.is_useful": 1 if is_useful else 0,
+                "page.is_about_COVID-19": new_is_about_covid_19,
+                "page.is_useful": new_is_useful,
                 "page.is_checked": 1,
-                "page.displayed_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
-                "page.topics": [ETOPIC_ITOPICS_MAP[new_etopic][0] for new_etopic in new_etopics]
+                "page.displayed_country": new_ecountry,
+                "page.topics": new_etopics
             }},
             upsert=True
         )
-
         updated = {
             "url": url,
-            "is_about_COVID-19": 1 if is_about_covid_19 else 0,
-            "is_useful": 1 if is_useful else 0,
-            "new_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
-            "new_topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics],
+            "is_about_COVID-19": new_is_about_covid_19,
+            "is_useful": new_is_useful,
+            "new_country": new_ecountry,
+            "new_topics": new_etopics,
             "notes": notes,
             "time": datetime.now().isoformat()
         }

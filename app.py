@@ -100,14 +100,14 @@ def update():
         url = data.get('url')
         is_about_covid_19 = data.get('is_about_COVID-19')
         is_useful = data.get('is_useful')
-        new_country = data.get('new_displayed_country')
-        new_classes = data.get('new_classes')
+        country = data.get('new_displayed_country')
+        classes_ = data.get('new_classes')
         notes = han_to_zen(str(data.get('notes')))
         updated = mongo.update_page(url=url,
                                     is_about_covid_19=is_about_covid_19,
                                     is_useful=is_useful,
-                                    new_ecountry=new_country,
-                                    new_etopics=new_classes,
+                                    ecountry=country,
+                                    etopics=classes_,
                                     notes=notes,
                                     category_check_log_path=cfg['database']['category_check_log_path'])
         return jsonify(updated)
