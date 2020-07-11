@@ -140,7 +140,7 @@ class DBHandler:
         sort_ = self.get_sort_metrics()
         if etopic and ecountry:
             topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
-            country_filters = [{"page.country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
+            country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
             filter_ = {"$and": base_filters + topic_filters + country_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
             reshaped_pages = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
@@ -150,7 +150,7 @@ class DBHandler:
             for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                 if ecountry == 'all':
                     continue
-                country_filters = [{"page.country": {"$in": icountries}}]
+                country_filters = [{"page.displayed_country": {"$in": icountries}}]
                 filter_ = {"$and": base_filters + topic_filters + country_filters}
                 cur = self.collection.find(filter=filter_, sort=sort_)
                 reshaped_pages[ecountry] = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
@@ -164,7 +164,7 @@ class DBHandler:
                 for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                     if ecountry == 'all':
                         continue
-                    country_filters = [{"page.country": {"$in": icountries}}]
+                    country_filters = [{"page.displayed_country": {"$in": icountries}}]
                     filter_ = {"$and": base_filters + topic_filters + country_filters}
                     cur = self.collection.find(filter=filter_, sort=sort_)
                     reshaped_pages[etopic][ecountry] = \
@@ -175,14 +175,14 @@ class DBHandler:
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
         if ecountry and etopic:
-            country_filters = [{"page.country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
+            country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
             topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
             filter_ = {"$and": base_filters + country_filters + topic_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
             reshaped_pages = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         elif ecountry:
             reshaped_pages = {}
-            country_filters = [{"page.country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
+            country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
             for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
                 if etopic == 'all':
                     continue
@@ -195,7 +195,7 @@ class DBHandler:
             for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                 if ecountry == 'all':
                     continue
-                country_filters = [{"page.country": {"$in": icountries}}]
+                country_filters = [{"page.displayed_country": {"$in": icountries}}]
                 reshaped_pages[ecountry] = {}
                 for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
                     if etopic == 'all':
@@ -212,9 +212,9 @@ class DBHandler:
         base_filters = [
             # filter out pages that are not about COVID-19
             {"$or": [
-                {"page.country": {"$ne": "jp"}},  # already filtered
+                {"page.displayed_country": {"$ne": "jp"}},  # already filtered
                 {"$and": [
-                    {"page.country": "jp"},
+                    {"page.displayed_country": "jp"},
                     {"page.is_about_COVID-19": 1}
                 ]}
             ]},
@@ -239,7 +239,7 @@ class DBHandler:
                 "page.is_useful": 1 if is_useful else 0,
                 "page.is_checked": 1,
                 "page.displayed_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
-                "page.topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics]
+                "page.topics": [ETOPIC_ITOPICS_MAP[new_etopic][0] for new_etopic in new_etopics]
             }},
             upsert=True
         )
