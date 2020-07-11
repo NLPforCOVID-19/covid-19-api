@@ -232,17 +232,6 @@ class DBHandler:
         return [("page.orig.timestamp", DESCENDING)]
 
     def update_page(self, url, is_about_covid_19, is_useful, new_ecountry, new_etopics, notes, category_check_log_path):
-        def extract_general_snippet(snippets: Dict[str, str]) -> str:
-            for snippet in snippets.values():
-                if snippet:
-                    return snippet
-            return ""
-        snippets = self.collection.find_one({"page.url": url})["page"]["snippets"]
-        general_snippet = extract_general_snippet(snippets)
-        for new_etopic in new_etopics:
-            if new_etopic not in snippets:
-                snippets[ETOPIC_ITOPICS_MAP[new_etopic][0]] = general_snippet
-
         self.collection.update_one(
             {"page.url": url},
             {"$set": {
@@ -250,8 +239,7 @@ class DBHandler:
                 "page.is_useful": 1 if is_useful else 0,
                 "page.is_checked": 1,
                 "page.displayed_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
-                "page.topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics],
-                "page.snippets": snippets
+                "page.topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics]
             }},
             upsert=True
         )
@@ -262,7 +250,6 @@ class DBHandler:
             "is_useful": 1 if is_useful else 0,
             "new_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
             "new_topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics],
-            "snippets": snippets,
             "notes": notes,
             "time": datetime.now().isoformat()
         }
@@ -273,11 +260,6 @@ class DBHandler:
 
 
 def main():
-    def extract_general_snippet(snippets: Dict[str, str]) -> str:
-        for snippet in snippets.values():
-            if snippet:
-                return snippet
-        return ""
     cfg = load_config()
 
     logger = logging.getLogger(__file__)
@@ -311,11 +293,6 @@ def main():
             if not existing_page:
                 continue
 
-            snippets = mongo.collection.find_one({"page.url": category_checked_page['url']})["page"]["snippets"]
-            general_snippet = extract_general_snippet(snippets)
-            for new_etopic in category_checked_page["new_topics"]:
-                if new_etopic not in snippets:
-                    snippets[ETOPIC_ITOPICS_MAP[new_etopic][0]] = general_snippet
             mongo.collection.update_one(
                 {"page.url": category_checked_page['url']},
                 {"$set": {
@@ -323,8 +300,7 @@ def main():
                     "page.is_useful": category_checked_page["is_useful"],
                     "page.is_checked": 1,
                     "page.displayed_country": category_checked_page["new_country"],
-                    "page.topics": category_checked_page["new_topics"],
-                    "page.snippets": snippets
+                    "page.topics": category_checked_page["new_topics"]
                 }},
             )
 
