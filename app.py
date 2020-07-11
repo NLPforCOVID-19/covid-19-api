@@ -106,8 +106,8 @@ def update():
         updated = mongo.update_page(url=url,
                                     is_about_covid_19=is_about_covid_19,
                                     is_useful=is_useful,
-                                    new_country=new_country,
-                                    new_topics=new_classes,
+                                    new_ecountry=new_country,
+                                    new_etopics=new_classes,
                                     notes=notes,
                                     category_check_log_path=cfg['database']['category_check_log_path'])
         return jsonify(updated)
