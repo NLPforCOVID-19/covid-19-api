@@ -1,4 +1,3 @@
-import copy
 import itertools
 import json
 import logging
@@ -9,87 +8,87 @@ from pymongo import MongoClient, DESCENDING
 
 from util import load_config
 
-COUNTRY_COUNTRIES_MAP = {
+ECOUNTRY_ICOUNTRIES_MAP = {
     "jp": ["jp"],
     "cn": ["cn"],
     "us": ["us"],
-    "eu": ["eu"],
-    "fr": ["fr"],
-    "es": ["es"],
-    "de": ["de"],
-    "in": ["in"],
-    "kr": ["kr"],
-    "int": ["int"],
-    "eur": ["eu", "fr", "es", "de"],
-    "asia": ["in", "kr"],
+    "eur": ["eur", "eu", "fr", "es", "de"],
+    "asia": ["asia", "kr", "in"],
+    "sa": ["sa", "br"],
+    "int": ["int"]
 }
-COUNTRY_COUNTRIES_MAP["all"] = list(set(itertools.chain(*COUNTRY_COUNTRIES_MAP.values())))
+ICOUNTRY_ECOUNTRY_MAP = {
+    icountry: ecountry
+    for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items()
+    for icountry in icountries
+}
+ECOUNTRIES = list(ECOUNTRY_ICOUNTRIES_MAP.keys())
+ICOUNTRIES = list(itertools.chain(*ECOUNTRY_ICOUNTRIES_MAP.values()))
+ECOUNTRY_ICOUNTRIES_MAP["all"] = ICOUNTRIES
 
-TOPIC_TOPICS_MAP = {
+ETOPIC_ITOPICS_MAP = {
     "感染状況": ["感染状況"],
-    "予防・防疫・緩和": ["予防・防疫・緩和", "予防・緊急事態宣言"],
+    "予防・防疫・緩和": ["予防・緊急事態宣言"],
     "症状・治療・検査など医療情報": ["症状・治療・検査など医療情報"],
     "経済・福祉政策": ["経済・福祉政策"],
-    "教育関連": ["教育関連", "休校・オンライン授業"],
+    "教育関連": ["休校・オンライン授業"],
     "その他": ["その他", "芸能・スポーツ"]
 }
-TOPICS_TOPIC_MAP = {
-    internal_topic: display_topic
-    for display_topic, internal_topics in TOPIC_TOPICS_MAP.items()
-    for internal_topic in internal_topics
+ITOPIC_ETOPIC_MAP = {
+    itopic: etopic
+    for etopic, itopics in ETOPIC_ITOPICS_MAP.items()
+    for itopic in itopics
 }
-TOPIC_TOPICS_MAP["all"] = list(set(itertools.chain(*TOPIC_TOPICS_MAP.values())))
-
-TAGS = ["is_about_COVID-19", "is_useful", "is_clear", "is_about_false_rumor"]
+ETOPICS = list(ETOPIC_ITOPICS_MAP.keys())
+ITOPICS = list(itertools.chain(*ETOPIC_ITOPICS_MAP.values()))
+ETOPIC_ITOPICS_MAP["all"] = ITOPICS
 
 
 class DBHandler:
-    def __init__(self, host: str, port: int, db_name: str, collection_name: str, useful_white_list: List) -> None:
+
+    def __init__(self, host: str, port: int, db_name: str, collection_name: str):
         self.client = MongoClient(host=host, port=port)
         self.db = self.client[db_name]
         self.collection = self.db.get_collection(name=collection_name)
-        self.useful_white_list = useful_white_list
 
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
 
-        def _extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
-            for topics in TOPIC_TOPICS_MAP.values():
-                for topic in topics:
-                    for snippet in snippets.get(topic, []):
-                        return snippet
-            return ''
+        def extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
+            for itopic in ITOPICS:
+                for snippet in snippets.get(itopic, []):
+                    return snippet.strip()
+            return ""
 
-        def _reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
+        def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
             reshaped = {}
-            general_snippet = _extract_general_snippet(snippets)
-            for rep_topic, topics in TOPIC_TOPICS_MAP.items():
-                snippets_about_topic = []
-                for topic in topics:
-                    snippets_about_topic += snippets.get(topic, [])
+            general_snippet = extract_general_snippet(snippets)
+            for itopic in ITOPICS:
+                snippets_about_topic = snippets.get(itopic, [])
                 if snippets_about_topic:
-                    reshaped[rep_topic] = snippets_about_topic[0].strip()
+                    reshaped[itopic] = snippets_about_topic[0].strip()
                 elif general_snippet:
-                    reshaped[rep_topic] = general_snippet
+                    reshaped[itopic] = general_snippet
+                else:
+                    reshaped[itopic] = ""
             return reshaped
 
-        is_about_covid_19 = document["classes"]["is_about_COVID-19"]
-        country = document["country"]
+        is_about_covid_19: int = document["classes"]["is_about_COVID-19"]
+        country: str = document["country"]
         orig = {
-            "title": document["orig"]["title"].strip(),
-            "timestamp": document["orig"]["timestamp"],
+            "title": document["orig"]["title"].strip(),  # type: str
+            "timestamp": document["orig"]["timestamp"],  # type: str
         }
-        if document["ja_translated"]["title"]:
-            ja_translated = {
-                "title": document["ja_translated"]["title"].strip(),
-                "timestamp": document["ja_translated"]["timestamp"],
-            }
-        else:
-            return None
-        url = document["url"]
+        if not document["ja_translated"]["title"]:
+            return
+        ja_translated = {
+            "title": document["ja_translated"]["title"].strip(),  # type: str
+            "timestamp": document["ja_translated"]["timestamp"],  # type: str
+        }
+        url: str = document["url"]
+        topics: List[str] = list(filter(lambda label: label in ITOPICS, document["labels"]))
+        snippets = reshape_snippets(document["snippets"])
 
-        topics = [label for label in document["labels"] if label != "is_about_COVID-19"]
-        snippets = _reshape_snippets(document["snippets"])
         is_checked = 0
         is_useful = document["classes"]["is_useful"]
         is_clear = document["classes"]["is_clear"]
@@ -125,87 +124,87 @@ class DBHandler:
             self.collection.insert_one({"page": document_})
 
     @staticmethod
-    def _reshape_page(page: dict) -> dict:
+    def reshape_page(page: dict) -> dict:
         page["topics"] = [
             {
-                "name": TOPICS_TOPIC_MAP.get(topic, topic),
-                "snippet": page["snippets"].get(TOPICS_TOPIC_MAP.get(topic, topic), "")
+                "name": ITOPIC_ETOPIC_MAP[itopic],
+                "snippet": page["snippets"][itopic]
             }
-            for topic in page["topics"]
+            for itopic in page["topics"]
         ]
         del page["snippets"]
         return page
 
-    def classes(self, topic: str, country: str, start: int, limit: int) -> List[dict]:
+    def classes(self, etopic: str, ecountry: str, start: int, limit: int) -> List[dict]:
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
-        if topic and country:
-            topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
-            country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
+        if etopic and ecountry:
+            topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
+            country_filters = [{"page.country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
             filter_ = {"$and": base_filters + topic_filters + country_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
-            reshaped_pages = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
-        elif topic:
+            reshaped_pages = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+        elif etopic:
             reshaped_pages = {}
-            topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
-            for country, countries in COUNTRY_COUNTRIES_MAP.items():
-                if country == 'all':
+            topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
+            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                if ecountry == 'all':
                     continue
-                country_filters = [{"page.country": {"$in": countries}}]
+                country_filters = [{"page.country": {"$in": icountries}}]
                 filter_ = {"$and": base_filters + topic_filters + country_filters}
                 cur = self.collection.find(filter=filter_, sort=sort_)
-                reshaped_pages[country] = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+                reshaped_pages[ecountry] = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         else:
             reshaped_pages = {}
-            for topic, topics in TOPIC_TOPICS_MAP.items():
-                if topic == 'all':
+            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
+                if etopic == 'all':
                     continue
-                topic_filters = [{"page.topics": {"$in": topics}}]
-                reshaped_pages[topic] = {}
-                for country, countries in COUNTRY_COUNTRIES_MAP.items():
-                    if country == 'all':
+                topic_filters = [{"page.topics": {"$in": itopics}}]
+                reshaped_pages[etopic] = {}
+                for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                    if ecountry == 'all':
                         continue
-                    country_filters = [{"page.country": {"$in": countries}}]
+                    country_filters = [{"page.country": {"$in": icountries}}]
                     filter_ = {"$and": base_filters + topic_filters + country_filters}
                     cur = self.collection.find(filter=filter_, sort=sort_)
-                    reshaped_pages[topic][country] = \
-                        [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+                    reshaped_pages[etopic][ecountry] = \
+                        [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
-    def countries(self, country: str, topic: str, start: int, limit: int) -> List[dict]:
+    def countries(self, ecountry: str, etopic: str, start: int, limit: int) -> List[dict]:
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
-        if country and topic:
-            country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
-            topic_filters = [{"page.topics": {"$in": TOPIC_TOPICS_MAP.get(topic, [])}}]
+        if ecountry and etopic:
+            country_filters = [{"page.country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
+            topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
             filter_ = {"$and": base_filters + country_filters + topic_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
-            reshaped_pages = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
-        elif country:
+            reshaped_pages = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+        elif ecountry:
             reshaped_pages = {}
-            country_filters = [{"page.country": {"$in": COUNTRY_COUNTRIES_MAP.get(country, [])}}]
-            for topic, topics in TOPIC_TOPICS_MAP.items():
-                if topic == 'all':
+            country_filters = [{"page.country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
+            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
+                if etopic == 'all':
                     continue
-                topic_filters = [{"page.topics": {"$in": topics}}]
+                topic_filters = [{"page.topics": {"$in": itopics}}]
                 filter_ = {"$and": base_filters + topic_filters + country_filters}
                 cur = self.collection.find(filter=filter_, sort=sort_)
-                reshaped_pages[topic] = [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+                reshaped_pages[etopic] = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         else:
             reshaped_pages = {}
-            for country, countries in COUNTRY_COUNTRIES_MAP.items():
-                if country == 'all':
+            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                if ecountry == 'all':
                     continue
-                country_filters = [{"page.country": {"$in": countries}}]
-                reshaped_pages[country] = {}
-                for topic, topics in TOPIC_TOPICS_MAP.items():
-                    if topic == 'all':
+                country_filters = [{"page.country": {"$in": icountries}}]
+                reshaped_pages[ecountry] = {}
+                for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
+                    if etopic == 'all':
                         continue
-                    topic_filters = [{"page.topics": {"$in": topics}}]
+                    topic_filters = [{"page.topics": {"$in": itopics}}]
                     filter_ = {"$and": base_filters + topic_filters + country_filters}
                     cur = self.collection.find(filter=filter_, sort=sort_)
-                    reshaped_pages[country][topic] = \
-                        [self._reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+                    reshaped_pages[ecountry][etopic] = \
+                        [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
     @staticmethod
@@ -232,25 +231,38 @@ class DBHandler:
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
 
-    def update_page(self, url, is_about_covid_19, is_useful, new_country, new_topics, notes, category_check_log_path):
+    def update_page(self, url, is_about_covid_19, is_useful, new_ecountry, new_etopics, notes, category_check_log_path):
+        def extract_general_snippet(snippets: Dict[str, str]) -> str:
+            for snippet in snippets.values():
+                if snippet:
+                    return snippet
+            return ""
+        snippets = self.collection.find_one({"page.url": url})["page"]["snippets"]
+        general_snippet = extract_general_snippet(snippets)
+        for new_etopic in new_etopics:
+            if new_etopic not in snippets:
+                snippets[ETOPIC_ITOPICS_MAP[new_etopic][0]] = general_snippet
+
         self.collection.update_one(
             {"page.url": url},
             {"$set": {
                 "page.is_about_COVID-19": 1 if is_about_covid_19 else 0,
                 "page.is_useful": 1 if is_useful else 0,
                 "page.is_checked": 1,
-                "page.displayed_country": new_country,
-                "page.topics": new_topics
-            }
-            },
+                "page.displayed_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
+                "page.topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics],
+                "page.snippets": snippets
+            }},
             upsert=True
         )
+
         updated = {
             "url": url,
             "is_about_COVID-19": 1 if is_about_covid_19 else 0,
             "is_useful": 1 if is_useful else 0,
-            "new_country": new_country,
-            "new_topics": new_topics,
+            "new_country": ECOUNTRY_ICOUNTRIES_MAP[new_ecountry][0],
+            "new_topics": [ETOPIC_ITOPICS_MAP[new_etopic] for new_etopic in new_etopics],
+            "snippets": snippets,
             "notes": notes,
             "time": datetime.now().isoformat()
         }
@@ -261,23 +273,25 @@ class DBHandler:
 
 
 def main():
+    def extract_general_snippet(snippets: Dict[str, str]) -> str:
+        for snippet in snippets.values():
+            if snippet:
+                return snippet
+        return ""
     cfg = load_config()
 
-    logger = logging.getLogger("Logging")
+    logger = logging.getLogger(__file__)
     logger.setLevel(20)
     fh = logging.FileHandler(cfg["database"]["log_path"], mode="a")
     logger.addHandler(fh)
     formatter = logging.Formatter("%(asctime)s:%(lineno)d:%(levelname)s:%(message)s")
     fh.setFormatter(formatter)
 
-    with open(cfg["crowdsourcing"]["useful_white_list"], mode='r') as f:
-        useful_white_list = [line.strip() for line in f.readlines()]
     mongo = DBHandler(
         host=cfg["database"]["host"],
         port=cfg["database"]["port"],
         db_name=cfg["database"]["db_name"],
         collection_name=cfg["database"]["collection_name"],
-        useful_white_list=useful_white_list
     )
 
     # add pages to the database or update pages
@@ -287,56 +301,32 @@ def main():
     num_docs = sum(1 for _ in mongo.collection.find())
     logger.log(20, f"Number of pages: {num_docs}")
 
-    # reflect the crowdsourcing results
-    # if os.path.isdir(cfg["crowdsourcing"]["result_dir"]):
-    #     for input_path in sorted(glob.glob(f'{cfg["crowdsourcing"]["result_dir"]}/20*.jsonl')):
-    #         file_name = os.path.splitext(os.path.basename(input_path))[0]
-    #         crowd_sourcing_date = file_name.split('_')[0]
-    #         crowd_sourcing_timestamp = \
-    #             f"{crowd_sourcing_date[:4]}-{crowd_sourcing_date[4:6]}-{crowd_sourcing_date[6:]}T00:00:00.000000"
-    #
-    #         with open(input_path, 'r') as f:
-    #             json_tags = [json.loads(line.strip()) for line in f]
-    #         for json_tag in json_tags:
-    #             search_result = mongo.collection.find_one({"page.url": json_tag["url"]})
-    #             if search_result:
-    #                 page = search_result["page"]
-    #                 existing_timestamp = page["orig"]["timestamp"]
-    #                 if crowd_sourcing_timestamp > existing_timestamp:
-    #                     page["is_checked"] = 1
-    #                     for tag in TAGS:
-    #                         page[tag] = json_tag["tags"][tag]
-    #
-    #                     new_topics = [topic for topic, has_topic in json_tag["tags"]["topics"].items() if has_topic]
-    #                     page["topics"] = new_topics
-    #
-    #                     old_snippets = page["snippets"]
-    #                     new_snippets = {}
-    #                     for new_topic in new_topics:
-    #                         new_snippets[new_topic] = old_snippets.get(new_topic, "")
-    #
-    #                     mongo.collection.update_one(
-    #                         {"page.url": json_tag["url"]},
-    #                         {"$set": {"page": page}}
-    #                     )
     # add category-checked pages
     with open(cfg["database"]["category_check_log_path"], mode='r') as f:
         for line in f:
-            if line.strip():
-                category_checked_page = json.loads(line.strip())
-                existing_page = mongo.collection.find_one({"page.url": category_checked_page['url']})
-                if existing_page:
-                    mongo.collection.update_one(
-                        {"page.url": category_checked_page['url']},
-                        {"$set": {
-                            "page.is_about_COVID-19": category_checked_page["is_about_COVID-19"],
-                            "page.is_useful": category_checked_page["is_useful"],
-                            "page.is_checked": 1,
-                            "page.displayed_country": category_checked_page["new_country"],
-                            "page.topics": category_checked_page["new_topics"]
-                        }
-                        },
-                    )
+            if not line.strip():
+                continue
+            category_checked_page = json.loads(line.strip())
+            existing_page = mongo.collection.find_one({"page.url": category_checked_page['url']})
+            if not existing_page:
+                continue
+
+            snippets = mongo.collection.find_one({"page.url": category_checked_page['url']})["page"]["snippets"]
+            general_snippet = extract_general_snippet(snippets)
+            for new_etopic in category_checked_page["new_topics"]:
+                if new_etopic not in snippets:
+                    snippets[ETOPIC_ITOPICS_MAP[new_etopic][0]] = general_snippet
+            mongo.collection.update_one(
+                {"page.url": category_checked_page['url']},
+                {"$set": {
+                    "page.is_about_COVID-19": category_checked_page["is_about_COVID-19"],
+                    "page.is_useful": category_checked_page["is_useful"],
+                    "page.is_checked": 1,
+                    "page.displayed_country": category_checked_page["new_country"],
+                    "page.topics": category_checked_page["new_topics"],
+                    "page.snippets": snippets
+                }},
+            )
 
 
 if __name__ == "__main__":

@@ -15,18 +15,16 @@ cfg = load_config()
 app = Flask(__name__)
 CORS(app, origins=cfg["access_control_allow_origin"])
 
-with open(cfg["crowdsourcing"]["useful_white_list"], mode='r') as f:
-    useful_white_list = [line.strip() for line in f.readlines()]
 mongo = DBHandler(
     host=cfg['database']['host'],
     port=cfg['database']['port'],
     db_name=cfg['database']['db_name'],
     collection_name=cfg['database']['collection_name'],
-    useful_white_list=useful_white_list
 )
 
 
 class InvalidUsage(Exception):
+
     status_code = 400
 
     def __init__(self, message, status_code=None, payload=None):
@@ -43,6 +41,7 @@ class InvalidUsage(Exception):
 
 
 class InvalidPassword(Exception):
+
     status_code = 403
 
     def __init__(self, message, status_code=None, payload=None):
@@ -74,7 +73,7 @@ def classes(class_=None, country=None):
         limit = int(limit)
     else:
         raise InvalidUsage('Parameters `start` and `limit` must be integers')
-    filtered_pages = mongo.classes(topic=class_, country=country, start=start, limit=limit)
+    filtered_pages = mongo.classes(etopic=class_, ecountry=country, start=start, limit=limit)
     return jsonify(filtered_pages)
 
 
@@ -89,7 +88,7 @@ def countries(country=None, class_=None):
         limit = int(limit)
     else:
         raise InvalidUsage('Parameters `start` and `limit` must be integers')
-    filtered_pages = mongo.countries(country=country, topic=class_, start=start, limit=limit)
+    filtered_pages = mongo.countries(ecountry=country, etopic=class_, start=start, limit=limit)
     return jsonify(filtered_pages)
 
 
@@ -107,8 +106,8 @@ def update():
         updated = mongo.update_page(url=url,
                                     is_about_covid_19=is_about_covid_19,
                                     is_useful=is_useful,
-                                    new_country=new_country,
-                                    new_topics=new_classes,
+                                    new_ecountry=new_country,
+                                    new_etopics=new_classes,
                                     notes=notes,
                                     category_check_log_path=cfg['database']['category_check_log_path'])
         return jsonify(updated)
