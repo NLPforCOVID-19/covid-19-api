@@ -3,7 +3,7 @@ import json
 import os
 
 from util import load_config
-from database import COUNTRY_COUNTRIES_MAP
+from database import ECOUNTRY_ICOUNTRIES_MAP
 
 # load config
 cfg = load_config()
@@ -15,14 +15,14 @@ here = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(here, "data")
 
 sources = collections.defaultdict(list)
-for display_country, actual_countries in COUNTRY_COUNTRIES_MAP.items():
-    if display_country == 'all':
+for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+    if ecountry == 'all':
         continue
     for domain, meta in info_sources["domains"].items():
         if domain == 'hazard.yahoo.co.jp':
             domain = 'hazard.yahoo.co.jp/article/20200207'
-        if meta["region"] in actual_countries:
-            sources[display_country].append(f'http://{domain}')
+        if meta["region"] in icountries:
+            sources[ecountry].append(f'http://{domain}')
 
 # output the result as a JSON file
 sources_path = os.path.join(data_dir, "sources.json")
