@@ -54,6 +54,15 @@
       "representativeSiteUrl": "#"
     },
     {
+      "country": "sa",
+      "name": {
+        "ja": "南アメリカ",
+        "dataRepository": ["Brazil", "Argentina", "Colombia", "Peru", "Chile", "Ecuador", "Bolivia", "Venezuela", "Guyana", "Uruguay", "Suriname", "Paraguay"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "#"
+    },
+    {
       "country": "int",
       "name": {
         "ja": "その他国際",
