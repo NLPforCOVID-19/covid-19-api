@@ -312,7 +312,7 @@ def main():
                 {"$set": {
                     "page.is_about_COVID-19": category_checked_page["is_about_COVID-19"],
                     "page.is_useful": category_checked_page["is_useful"],
-                    "page.is_about_false_rumor": category_checked_page["is_about_false_rumor"],
+                    "page.is_about_false_rumor": category_checked_page.get("is_about_false_rumor", 0),
                     "page.is_checked": 1,
                     "page.displayed_country": category_checked_page["new_country"],
                     "page.topics": category_checked_page["new_topics"]
