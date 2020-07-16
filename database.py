@@ -236,14 +236,13 @@ class DBHandler:
                     is_about_covid_19: bool,
                     is_useful: bool,
                     is_about_false_rumor: bool,
-                    ecountry: str,
+                    icountry: str,
                     etopics: List[str],
                     notes: str,
                     category_check_log_path: str) -> Dict[str, Union[int, str, List[str]]]:
         new_is_about_covid_19 = 1 if is_about_covid_19 else 0
         new_is_useful = 1 if is_useful else 0
         new_is_about_false_rumor = 1 if is_about_false_rumor else 0
-        new_ecountry = ECOUNTRY_ICOUNTRIES_MAP[ecountry][0]
         new_etopics = [ETOPIC_ITOPICS_MAP[etopic][0] for etopic in etopics]
 
         self.collection.update_one(
@@ -253,7 +252,7 @@ class DBHandler:
                 "page.is_useful": new_is_useful,
                 "page.is_about_false_rumor": new_is_about_false_rumor,
                 "page.is_checked": 1,
-                "page.displayed_country": new_ecountry,
+                "page.displayed_country": icountry,
                 "page.topics": new_etopics
             }},
             upsert=True
@@ -263,7 +262,7 @@ class DBHandler:
             "is_about_COVID-19": new_is_about_covid_19,
             "is_useful": new_is_useful,
             "is_about_false_rumor": new_is_about_false_rumor,
-            "new_country": new_ecountry,
+            "new_country": icountry,
             "new_topics": new_etopics,
             "notes": notes,
             "time": datetime.now().isoformat()

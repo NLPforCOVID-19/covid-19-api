@@ -108,7 +108,7 @@ def update():
                                     is_about_covid_19=is_about_covid_19,
                                     is_useful=is_useful,
                                     is_about_false_rumor=is_about_false_rumor,
-                                    ecountry=country,
+                                    icountry=country,
                                     etopics=classes_,
                                     notes=notes,
                                     category_check_log_path=cfg['database']['category_check_log_path'])
