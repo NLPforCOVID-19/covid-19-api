@@ -2,7 +2,7 @@ import itertools
 import json
 import logging
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from pymongo import MongoClient, DESCENDING
 
@@ -231,9 +231,18 @@ class DBHandler:
     def get_sort_metrics():
         return [("page.orig.timestamp", DESCENDING)]
 
-    def update_page(self, url, is_about_covid_19, is_useful, ecountry, etopics, notes, category_check_log_path):
+    def update_page(self,
+                    url: str,
+                    is_about_covid_19: bool,
+                    is_useful: bool,
+                    is_about_false_rumor: bool,
+                    ecountry: str,
+                    etopics: List[str],
+                    notes: str,
+                    category_check_log_path: str) -> Dict[str, Union[int, str, List[str]]]:
         new_is_about_covid_19 = 1 if is_about_covid_19 else 0
         new_is_useful = 1 if is_useful else 0
+        new_is_about_false_rumor = 1 if is_about_false_rumor else 0
         new_ecountry = ECOUNTRY_ICOUNTRIES_MAP[ecountry][0]
         new_etopics = [ETOPIC_ITOPICS_MAP[etopic][0] for etopic in etopics]
 
@@ -242,6 +251,7 @@ class DBHandler:
             {"$set": {
                 "page.is_about_COVID-19": new_is_about_covid_19,
                 "page.is_useful": new_is_useful,
+                "page.is_about_false_rumor": new_is_about_false_rumor,
                 "page.is_checked": 1,
                 "page.displayed_country": new_ecountry,
                 "page.topics": new_etopics
@@ -252,6 +262,7 @@ class DBHandler:
             "url": url,
             "is_about_COVID-19": new_is_about_covid_19,
             "is_useful": new_is_useful,
+            "is_about_false_rumor": new_is_about_false_rumor,
             "new_country": new_ecountry,
             "new_topics": new_etopics,
             "notes": notes,

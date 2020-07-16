@@ -100,12 +100,14 @@ def update():
         url = data.get('url')
         is_about_covid_19 = data.get('is_about_COVID-19')
         is_useful = data.get('is_useful')
+        is_about_false_rumor = data.get('is_about_false_rumor')
         country = data.get('new_displayed_country')
         classes_ = data.get('new_classes')
         notes = han_to_zen(str(data.get('notes')))
         updated = mongo.update_page(url=url,
                                     is_about_covid_19=is_about_covid_19,
                                     is_useful=is_useful,
+                                    is_about_false_rumor=is_about_false_rumor,
                                     ecountry=country,
                                     etopics=classes_,
                                     notes=notes,
