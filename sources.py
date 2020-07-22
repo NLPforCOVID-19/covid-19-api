@@ -19,10 +19,9 @@ for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
     if ecountry == 'all':
         continue
     for domain, meta in info_sources["domains"].items():
-        if domain == 'hazard.yahoo.co.jp':
-            domain = 'hazard.yahoo.co.jp/article/20200207'
         if meta["region"] in icountries:
-            sources[ecountry].append(f'http://{domain}')
+            for source in meta["sources"]:
+                sources[ecountry].append(f'http://{source}')
 
 # output the result as a JSON file
 sources_path = os.path.join(data_dir, "sources.json")
