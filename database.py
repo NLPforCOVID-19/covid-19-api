@@ -135,7 +135,7 @@ class DBHandler:
         del page["snippets"]
         return page
 
-    def classes(self, etopic: str, ecountry: str, start: int, limit: int) -> List[dict]:
+    def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str) -> List[dict]:
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
         if etopic and ecountry:
@@ -171,7 +171,7 @@ class DBHandler:
                         [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
-    def countries(self, ecountry: str, etopic: str, start: int, limit: int) -> List[dict]:
+    def countries(self, ecountry: str, etopic: str, start: int, limit: int, lang: str) -> List[dict]:
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
         if ecountry and etopic:

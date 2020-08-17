@@ -62,34 +62,43 @@ def index():
     return "it works"
 
 
+def get_start() -> int:
+    start = request.args.get("start", "0")  # NOTE: set the default value as a `str` object
+    if start.isdecimal():
+        start = int(start)
+    else:
+        raise InvalidUsage('Parameter `start` must be integers')
+    return start
+
+
+def get_limit() -> int:
+    limit = request.args.get("limit", "10")  # NOTE: set the default value as a `str` object
+    if limit.isdecimal():
+        limit = int(limit)
+    else:
+        raise InvalidUsage('Parameter `limit` must be integers')
+    return limit
+
+
+def get_lang() -> str:
+    lang = request.args.get("lang", "ja")
+    if lang not in {"ja", "en"}:
+        raise InvalidUsage('Allowed languages are `ja` and `en`')
+    return lang
+
+
 @app.route('/classes')
 @app.route('/classes/<class_>')
 @app.route('/classes/<class_>/<country>')
 def classes(class_=None, country=None):
-    start = request.args.get("start", "0")  # NOTE: set the default value as a `str` object
-    limit = request.args.get("limit", "10")  # NOTE: set the default value as a `str` object
-    if start.isdecimal() and limit.isdecimal():
-        start = int(start)
-        limit = int(limit)
-    else:
-        raise InvalidUsage('Parameters `start` and `limit` must be integers')
-    filtered_pages = mongo.classes(etopic=class_, ecountry=country, start=start, limit=limit)
-    return jsonify(filtered_pages)
+    return jsonify(mongo.classes(class_, country, start=get_start(), limit=get_limit(), lang=get_lang()))
 
 
 @app.route('/countries')
 @app.route('/countries/<country>')
 @app.route('/countries/<country>/<class_>')
 def countries(country=None, class_=None):
-    start = request.args.get("start", "0")  # NOTE: set the default value as a `str` object
-    limit = request.args.get("limit", "10")  # NOTE: set the default value as a `str` object
-    if start.isdecimal() and limit.isdecimal():
-        start = int(start)
-        limit = int(limit)
-    else:
-        raise InvalidUsage('Parameters `start` and `limit` must be integers')
-    filtered_pages = mongo.countries(ecountry=country, etopic=class_, start=start, limit=limit)
-    return jsonify(filtered_pages)
+    return jsonify(mongo.countries(country, class_, start=get_start(), limit=get_limit(), lang=get_lang()))
 
 
 @app.route('/update', methods=["POST"])
