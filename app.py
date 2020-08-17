@@ -128,7 +128,7 @@ def update():
 
 @app.route('/meta')
 def meta():
-    with open(os.path.join(here, "data", "meta.json")) as f:
+    with open(os.path.join(here, "data", f"meta.{get_lang()}.json")) as f:
         meta_info = json.load(f)
 
     with open(os.path.join(here, "data", "stats.json")) as f:

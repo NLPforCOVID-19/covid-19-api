@@ -26,15 +26,14 @@ confirmation_df = fetch_data(confirmation_url)
 # load target countries
 here = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(here, "data")
-metadata_path = os.path.join(data_dir, "meta.json")
+metadata_path = os.path.join(data_dir, "meta.ja.json")
 with open(metadata_path) as f:
     countries = json.load(f)["countries"]
 
 
 # extract statistics
 def get_last_update(df):
-    month, day, year = df.columns[-1].split("/")
-    return f"{month}月{day}日"
+    return df.columns[-1]
 
 
 def get_statistics(df, accessors):

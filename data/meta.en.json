@@ -1,0 +1,75 @@
+{
+  "topics": [
+    "Infection Status",
+    "Protection Measure",
+    "Medical/Treatment Information",
+    "Economic/Welfare Policy",
+    "Education",
+    "Others"
+  ],
+  "countries": [
+    {
+      "country": "jp",
+      "name": {
+        "ja": "Japan",
+        "dataRepository": ["Japan"]
+      },
+      "language": "ja",
+      "representativeSiteUrl": "https://www.kantei.go.jp/jp/headline/kansensho/coronavirus.html"
+    },
+    {
+      "country": "cn",
+      "name": {
+        "ja": "China",
+        "dataRepository": ["China"]
+      },
+      "language": "zh",
+      "representativeSiteUrl": "http://www.gov.cn/fuwu/zt/yqfkzq/index.htm"
+    },
+    {
+      "country": "us",
+      "name": {
+        "ja": "United States",
+        "dataRepository": ["US"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "https://www.cdc.gov/coronavirus/index.html"
+    },
+    {
+      "country": "eur",
+      "name": {
+        "ja": "Europe",
+        "dataRepository": ["Belgium", "Bulgaria", "Czechia", "Denmark", "Germany", "Estonia", "Ireland", "Greece", "Spain", "France", "Croatia", "Italy", "Cyprus", "Latvia", "Lithuania", "Luxembourg", "Hungary", "Malta", "Netherlands", "Austria", "Poland", "Portugal", "Romania", "Slovenia", "Slovakia", "Finland", "Sweden"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "https://www.ecdc.europa.eu/en/covid-19-pandemic"
+    },
+    {
+      "country": "asia",
+      "name": {
+        "ja": "Asia (other than Japan & China)",
+        "dataRepository": ["Indonesia", "India", "Korea, South", "Thailand", "Vietnam", "Singapore", "Philippines", "Malaysia", "Pakistan", "Iran", "Israel", "Mongolia", "Maldives", "Cambodia", "Saudi Arabia", "Nepal", "Bangladesh", "Afghanistan", "Sri Lanka", "Laos", "Uzbekistan", "Iraq", "Syria", "United Arab Emirates", "Armenia", "Lebanon", "Brunei", "Jordan", "Qatar", "Palestine", "Yemen", "Tajikistan", "Timor-Leste", "Bhutan", "Kuwait", "Oman", "Turkmenistan", "Kyrgyzstan", "Bahrain"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "#"
+    },
+    {
+      "country": "sa",
+      "name": {
+        "ja": "South America",
+        "dataRepository": ["Brazil", "Argentina", "Colombia", "Peru", "Chile", "Ecuador", "Bolivia", "Venezuela", "Guyana", "Uruguay", "Suriname", "Paraguay"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "#"
+    },
+    {
+      "country": "int",
+      "name": {
+        "ja": "Others",
+        "dataRepository": ["all"]
+      },
+      "language": "en",
+      "representativeSiteUrl": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019"
+    }
+  ]
+}
