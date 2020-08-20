@@ -119,10 +119,13 @@ class DBHandler:
             for itopic in page["topics"]
         ]
         page["translated"] = page[f"{lang}_translated"]
+        page["domain_label"] = page[f"{lang}_domain_label"]
         del page["ja_snippets"]
         del page["en_snippets"]
         del page["ja_translated"]
         del page["en_translated"]
+        del page["ja_domain_label"]
+        del page["en_domain_label"]
         return page
 
     def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str) -> List[dict]:
