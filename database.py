@@ -57,7 +57,8 @@ class DBHandler:
         def extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
             for itopic in ITOPICS:
                 for snippet in snippets.get(itopic, []):
-                    return snippet.strip()
+                    if snippet:
+                        return snippet.strip()
             return ""
 
         def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
@@ -65,7 +66,7 @@ class DBHandler:
             general_snippet = extract_general_snippet(snippets)
             for itopic in ITOPICS:
                 snippets_about_topic = snippets.get(itopic, [])
-                if snippets_about_topic:
+                if snippets_about_topic and snippets_about_topic[0]:
                     reshaped[itopic] = snippets_about_topic[0].strip()
                 elif general_snippet:
                     reshaped[itopic] = general_snippet
@@ -75,6 +76,8 @@ class DBHandler:
 
         is_about_covid_19: int = document["classes"]["is_about_COVID-19"]
         country: str = document["country"]
+        if not document["orig"]["title"]:
+            return
         orig = {
             "title": document["orig"]["title"].strip(),  # type: str
             "timestamp": document["orig"]["timestamp"],  # type: str
@@ -85,9 +88,16 @@ class DBHandler:
             "title": document["ja_translated"]["title"].strip(),  # type: str
             "timestamp": document["ja_translated"]["timestamp"],  # type: str
         }
+        if not document["en_translated"]["title"]:
+            return
+        en_translated = {
+            "title": document["en_translated"]["title"].strip(),  # type: str
+            "timestamp": document["en_translated"]["timestamp"],  # type: str
+        }
         url: str = document["url"]
         topics: List[str] = list(filter(lambda label: label in ITOPICS, document["labels"]))
-        snippets = reshape_snippets(document["snippets"])
+        ja_snippets = reshape_snippets(document["snippets"])
+        en_snippets = reshape_snippets(document["snippets_en"])
 
         is_checked = 0
         is_useful = document["classes"]["is_useful"]
@@ -101,9 +111,11 @@ class DBHandler:
             "displayed_country": country,
             "orig": orig,
             "ja_translated": ja_translated,
+            "en_translated": en_translated,
             "url": url,
             "topics": topics,
-            "snippets": snippets,
+            "ja_snippets": ja_snippets,
+            "en_snippets": en_snippets,
             "is_checked": is_checked,
             "is_about_COVID-19": is_about_covid_19,
             "is_useful": is_useful,
@@ -128,11 +140,13 @@ class DBHandler:
         page["topics"] = [
             {
                 "name": ITOPIC_ETOPIC_MAP[itopic],
-                "snippet": page["snippets"][itopic]
+                "ja_snippet": page["ja_snippets"][itopic],
+                "en_snippet": page["en_snippets"][itopic],
             }
             for itopic in page["topics"]
         ]
-        del page["snippets"]
+        del page["ja_snippets"]
+        del page["en_snippets"]
         return page
 
     def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str) -> List[dict]:
