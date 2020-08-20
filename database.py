@@ -77,7 +77,8 @@ class DBHandler:
         is_about_false_rumor = document["classes"]["is_about_false_rumor"]
 
         domain = document.get("domain", "")
-        domain_label = document.get("domain_label", "")
+        ja_domain_label = document.get("domain_label", "")
+        en_domain_label = document.get("domain_label_en", "")
         document_ = {
             "country": country,
             "displayed_country": country,
@@ -94,7 +95,8 @@ class DBHandler:
             "is_clear": is_clear,
             "is_about_false_rumor": is_about_false_rumor,
             "domain": domain,
-            "domain_label": domain_label
+            "ja_domain_label": ja_domain_label,
+            "en_domain_label": en_domain_label
         }
 
         existing_page = self.collection.find_one({"page.url": url})
