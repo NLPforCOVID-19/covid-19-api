@@ -128,8 +128,22 @@ def update():
 
 @app.route('/meta')
 def meta():
-    with open(os.path.join(here, "data", f"meta.{get_lang()}.json")) as f:
+    lang = get_lang()
+    with open(os.path.join(here, "data", f"meta.json")) as f:
         meta_info = json.load(f)
+
+    def reshape_country(country):
+        return {
+            "country": country["country"],
+            "name": country["name"][lang],
+            "language": country["language"],
+            "representativeSiteUrl": country["representativeSiteUrl"]
+        }
+
+    meta_info = {
+        "topics": [topic[lang] for topic in meta_info["topics"]],
+        "countries": [reshape_country(country) for country in meta_info["countries"]]
+    }
 
     with open(os.path.join(here, "data", "stats.json")) as f:
         stats_info = json.load(f)["stats"]

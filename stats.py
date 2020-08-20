@@ -26,7 +26,7 @@ confirmation_df = fetch_data(confirmation_url)
 # load target countries
 here = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(here, "data")
-metadata_path = os.path.join(data_dir, "meta.ja.json")
+metadata_path = os.path.join(data_dir, "meta.json")
 with open(metadata_path) as f:
     countries = json.load(f)["countries"]
 
@@ -51,8 +51,8 @@ last_update = get_last_update(death_df)
 
 stats = {}
 for country in countries:
-    death_total, death_today = get_statistics(death_df, country["name"]["dataRepository"])
-    confirmation_total, confirmation_today = get_statistics(confirmation_df, country["name"]["dataRepository"])
+    death_total, death_today = get_statistics(death_df, country["dataRepository"])
+    confirmation_total, confirmation_today = get_statistics(confirmation_df, country["dataRepository"])
     stats[country["country"]] = {
         "death_total": death_total,
         "confirmation_total": confirmation_total,

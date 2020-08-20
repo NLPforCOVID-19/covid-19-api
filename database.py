@@ -1,6 +1,7 @@
 import itertools
 import json
 import logging
+import os
 from datetime import datetime
 from typing import List, Dict, Union
 
@@ -42,6 +43,16 @@ ITOPIC_ETOPIC_MAP = {
 ETOPICS = list(ETOPIC_ITOPICS_MAP.keys())
 ITOPICS = list(itertools.chain(*ETOPIC_ITOPICS_MAP.values()))
 ETOPIC_ITOPICS_MAP["all"] = ITOPICS
+
+here = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(here, "data", f"meta.json")) as f:
+    meta_info = json.load(f)
+ETOPIC_TRANS_MAP = {
+    etopic: topic["ja"] for topic in meta_info["topics"] for etopic in topic.values()
+}
+ECOUNTRY_TRANS_MAP = {
+    ecountry: country["name"]["ja"] for country in meta_info["countries"] for ecountry in country["name"].values()
+}
 
 
 class DBHandler:
@@ -136,20 +147,24 @@ class DBHandler:
             self.collection.insert_one({"page": document_})
 
     @staticmethod
-    def reshape_page(page: dict) -> dict:
+    def reshape_page(page: dict, lang) -> dict:
         page["topics"] = [
             {
                 "name": ITOPIC_ETOPIC_MAP[itopic],
-                "ja_snippet": page["ja_snippets"][itopic],
-                "en_snippet": page["en_snippets"][itopic],
+                "snippet": page[f"{lang}_snippets"][itopic]
             }
             for itopic in page["topics"]
         ]
+        page["translated"] = page[f"{lang}_translated"]
         del page["ja_snippets"]
         del page["en_snippets"]
+        del page["ja_translated"]
+        del page["en_translated"]
         return page
 
     def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str) -> List[dict]:
+        etopic = ETOPIC_TRANS_MAP.get(etopic, etopic)
+
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
         if etopic and ecountry:
@@ -157,7 +172,7 @@ class DBHandler:
             country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
             filter_ = {"$and": base_filters + topic_filters + country_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
-            reshaped_pages = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+            reshaped_pages = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
         elif etopic:
             reshaped_pages = {}
             topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
@@ -167,7 +182,8 @@ class DBHandler:
                 country_filters = [{"page.displayed_country": {"$in": icountries}}]
                 filter_ = {"$and": base_filters + topic_filters + country_filters}
                 cur = self.collection.find(filter=filter_, sort=sort_)
-                reshaped_pages[ecountry] = [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+                reshaped_pages[ecountry] = \
+                    [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
         else:
             reshaped_pages = {}
             for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
@@ -182,7 +198,7 @@ class DBHandler:
                     filter_ = {"$and": base_filters + topic_filters + country_filters}
                     cur = self.collection.find(filter=filter_, sort=sort_)
                     reshaped_pages[etopic][ecountry] = \
-                        [self.reshape_page(doc["page"]) for doc in cur.skip(start).limit(limit)]
+                        [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
         return reshaped_pages
 
     def countries(self, ecountry: str, etopic: str, start: int, limit: int, lang: str) -> List[dict]:
