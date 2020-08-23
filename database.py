@@ -120,6 +120,10 @@ class DBHandler:
         ]
         page["translated"] = page[f"{lang}_translated"]
         page["domain_label"] = page[f"{lang}_domain_label"]
+
+        # TODO: should be controlled by the text classifier
+        page["is_about_false_rumor"] = int(page["domain"] == "fij.info")
+
         del page["ja_snippets"]
         del page["en_snippets"]
         del page["ja_translated"]
