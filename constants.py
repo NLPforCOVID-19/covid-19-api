@@ -74,3 +74,6 @@ ECOUNTRY_TRANS_MAP = {
     for country in countries
     for ecountry in country["name"].items()
 }
+
+SCORE_THRESHOLD = 0.7
+RUMOR_THRESHOLD = 0.85
