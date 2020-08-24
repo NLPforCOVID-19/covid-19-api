@@ -13,6 +13,8 @@ from constants import (
     ECOUNTRY_ICOUNTRIES_MAP,
     ETOPIC_TRANS_MAP,
     ECOUNTRY_TRANS_MAP,
+    SCORE_THRESHOLD,
+    RUMOR_THRESHOLD
 )
 
 
@@ -67,14 +69,22 @@ class DBHandler:
             "timestamp": document["en_translated"]["timestamp"],  # type: str
         }
         url: str = document["url"]
-        topics: List[str] = list(filter(lambda label: label in ITOPICS, document["labels"]))
+        topics_to_score = {
+            key: value for key, value in document["classes_bert"].items() if key in ITOPICS and value > 0.5
+        }
+        topics: List[str] = []
+        for idx, (topic, score) in enumerate(sorted(topics_to_score.items(), key=lambda x: x[1], reverse=True)):
+            if idx == 0 or score > SCORE_THRESHOLD:
+                topics.append(topic)
+            else:
+                break
         ja_snippets = reshape_snippets(document["snippets"])
         en_snippets = reshape_snippets(document["snippets_en"])
 
         is_checked = 0
         is_useful = document["classes"]["is_useful"]
         is_clear = document["classes"]["is_clear"]
-        is_about_false_rumor = document["classes"]["is_about_false_rumor"]
+        is_about_false_rumor = 1 if document["classes_bert"]["is_about_false_rumor"] > RUMOR_THRESHOLD else 0
 
         domain = document.get("domain", "")
         ja_domain_label = document.get("domain_label", "")
