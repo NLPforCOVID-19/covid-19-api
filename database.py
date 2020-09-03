@@ -14,7 +14,8 @@ from constants import (
     ETOPIC_TRANS_MAP,
     ECOUNTRY_TRANS_MAP,
     SCORE_THRESHOLD,
-    RUMOR_THRESHOLD
+    RUMOR_THRESHOLD,
+    USEFUL_THRESHOLD
 )
 
 
@@ -82,7 +83,7 @@ class DBHandler:
         en_snippets = reshape_snippets(document["snippets_en"])
 
         is_checked = 0
-        is_useful = document["classes"]["is_useful"]
+        is_useful = 1 if document["classes_bert"]["is_useful"] > USEFUL_THRESHOLD else 0
         is_clear = document["classes"]["is_clear"]
         is_about_false_rumor = 1 if document["classes_bert"]["is_about_false_rumor"] > RUMOR_THRESHOLD else 0
 
