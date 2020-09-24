@@ -87,6 +87,26 @@
       "representativeSiteUrl": "#"
     },
     {
+      "country": "oceania",
+      "name": {
+        "ja": "オセアニア",
+        "en": "Oceania"
+      },
+      "dataRepository": ["New Zealand", "Australia", "Fiji", "Papua New Guinea"],
+      "language": "en",
+      "representativeSiteUrl": "#"
+    },
+    {
+      "country": "africa",
+      "name": {
+        "ja": "アフリカ",
+        "en": "Africa"
+      },
+      "dataRepository": ["South Africa", "Nigeria", "Kenya", "Ghana", "Ethiopia", "Congo (Brazzaville)", "Congo (Kinshasa", "Tanzania", "Morocco", "Senegal", "Mali", "Uganda", "Cote d'Ivoire", "Madagascar", "Angola", "Zimbabwe", "Sudan", "Cameron", "Zambia", "Algeria", "Somalia", "Libya", "Rwanda", "Namibia", "Niger", "Tunisia", "Mauritania", "Mozambique", "Central African Republic", "Botswana", "Guinea", "Togo", "Burkina Faso", "Benin", "Mauritius", "Gambia", "Djibouti", "Malawi", "Eritrea", "Chad", "Gabon", "Western Sahara", "Seychelles", "South Sudan", "Sierra Leone", "Eswatini", "Lesotho", "Burundi", "Equatorial Guinea"],
+      "language": "en",
+      "representativeSiteUrl": "#"
+    },
+    {
       "country": "int",
       "name": {
         "ja": "その他国際",

@@ -10,6 +10,8 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     "eur": ["eur", "eu", "fr", "es", "de"],
     "asia": ["asia", "kr", "in"],
     "sa": ["sa", "br"],
+    "oceania": ["au"],
+    "africa": ["za"],
     "int": ["int"]
 }
 
