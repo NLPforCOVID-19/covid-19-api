@@ -228,13 +228,7 @@ class DBHandler:
                     {"page.displayed_country": "jp"},
                     {"page.is_about_COVID-19": 1}
                 ]}
-            ]},
-            # filter out pages that have been manually checked and regarded as not useful ones
-            {"$or": [
-                {"page.is_checked": 0},
-                {"page.is_useful": {"$ne": 0}},
-                {"page.is_about_false_rumor": 1}
-            ]},
+            ]}
         ]
         return base_filters
 
