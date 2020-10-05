@@ -73,10 +73,10 @@ class DBHandler:
         topics_to_score = {
             key: value for key, value in document["classes_bert"].items() if key in ITOPICS and value > 0.5
         }
-        topics: List[str] = []
+        topics: Dict[str, float] = dict()
         for idx, (topic, score) in enumerate(sorted(topics_to_score.items(), key=lambda x: x[1], reverse=True)):
             if idx == 0 or score > SCORE_THRESHOLD:
-                topics.append(topic)
+                topics[topic] = float(score)
             else:
                 break
         ja_snippets = reshape_snippets(document["snippets"])
@@ -248,7 +248,7 @@ class DBHandler:
         new_is_about_covid_19 = 1 if is_about_covid_19 else 0
         new_is_useful = 1 if is_useful else 0
         new_is_about_false_rumor = 1 if is_about_false_rumor else 0
-        new_etopics = [ETOPIC_ITOPICS_MAP[etopic][0] for etopic in etopics]
+        new_etopics = {ETOPIC_ITOPICS_MAP[etopic][0]: 1.0 for etopic in etopics}
 
         self.collection.update_one(
             {"page.url": url},
@@ -268,7 +268,7 @@ class DBHandler:
             "is_useful": new_is_useful,
             "is_about_false_rumor": new_is_about_false_rumor,
             "new_country": icountry,
-            "new_topics": new_etopics,
+            "new_topics": new_etopics.keys(),
             "notes": notes,
             "time": datetime.now().isoformat()
         }
@@ -320,7 +320,7 @@ def main():
                     "page.is_about_false_rumor": category_checked_page.get("is_about_false_rumor", 0),
                     "page.is_checked": 1,
                     "page.displayed_country": category_checked_page["new_country"],
-                    "page.topics": category_checked_page["new_topics"]
+                    "page.topics": {new_topic: 1.0 for new_topic in category_checked_page["new_topics"]}
                 }},
             )
 
