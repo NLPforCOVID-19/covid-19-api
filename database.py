@@ -34,14 +34,15 @@ class DBHandler:
             general_snippet = ""
             for itopic in ITOPICS:
                 if itopic in snippets:
-                    general_snippet = snippets[itopic][0]
+                    general_snippet = snippets[itopic][0] if snippets[itopic] else ""
                     break
 
             # Reshape snippets.
             reshaped = {}
             for itopic in ITOPICS:
-                if itopic in snippets and snippets[itopic][0].strip():
-                    reshaped[itopic] = snippets[itopic][0].strip()
+                snippets_about_topic = snippets.get(itopic, [])
+                if snippets_about_topic and snippets_about_topic[0]:
+                    reshaped[itopic] = snippets_about_topic[0].strip()
                 elif general_snippet:
                     reshaped[itopic] = general_snippet
                 else:
@@ -285,7 +286,7 @@ def main():
     )
 
     # add pages to the database or update pages
-    with open(cfg["database"]["input_page_path"]) as f:
+    with open(cfg["database"]["input_page_path"], mode="r", encoding="utf-8") as f:
         for line in f:
             mongo.upsert_page(json.loads(line.strip()))
     num_docs = sum(1 for _ in mongo.collection.find())
