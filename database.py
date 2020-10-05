@@ -149,14 +149,18 @@ class DBHandler:
         base_filters = self.get_base_filters()
         sort_ = self.get_sort_metrics()
         if etopic and ecountry:
-            topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
+            topic_filters = [
+                {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]}
+            ]
             country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
             filter_ = {"$and": base_filters + topic_filters + country_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
             reshaped_pages = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
         elif etopic:
             reshaped_pages = {}
-            topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
+            topic_filters = [
+                {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]}
+            ]
             for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                 if ecountry == 'all':
                     continue
@@ -170,7 +174,9 @@ class DBHandler:
             for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
                 if etopic == 'all':
                     continue
-                topic_filters = [{"page.topics": {"$in": itopics}}]
+                topic_filters = [
+                    {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}
+                ]
                 reshaped_pages[etopic] = {}
                 for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                     if ecountry == 'all':
@@ -187,7 +193,9 @@ class DBHandler:
         sort_ = self.get_sort_metrics()
         if ecountry and etopic:
             country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
-            topic_filters = [{"page.topics": {"$in": ETOPIC_ITOPICS_MAP.get(etopic, [])}}]
+            topic_filters = [
+                {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]}
+            ]
             filter_ = {"$and": base_filters + country_filters + topic_filters}
             cur = self.collection.find(filter=filter_, sort=sort_)
             reshaped_pages = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
@@ -197,7 +205,9 @@ class DBHandler:
             for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
                 if etopic == 'all':
                     continue
-                topic_filters = [{"page.topics": {"$in": itopics}}]
+                topic_filters = [
+                    {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}
+                ]
                 filter_ = {"$and": base_filters + topic_filters + country_filters}
                 cur = self.collection.find(filter=filter_, sort=sort_)
                 reshaped_pages[etopic] = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
@@ -211,7 +221,9 @@ class DBHandler:
                 for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
                     if etopic == 'all':
                         continue
-                    topic_filters = [{"page.topics": {"$in": itopics}}]
+                    topic_filters = [
+                        {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}
+                    ]
                     filter_ = {"$and": base_filters + topic_filters + country_filters}
                     cur = self.collection.find(filter=filter_, sort=sort_)
                     reshaped_pages[ecountry][etopic] = \
