@@ -56,6 +56,7 @@ class DBHandler:
         orig = {
             "title": document["orig"]["title"].strip(),  # type: str
             "timestamp": document["orig"]["timestamp"],  # type: str
+            "simple_timestamp": datetime.fromisoformat(document["orig"]["timestamp"]).date().isoformat(),  # type: str
         }
         if not document["ja_translated"]["title"]:
             return
