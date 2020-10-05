@@ -29,20 +29,19 @@ class DBHandler:
     def upsert_page(self, document: dict) -> None:
         """Add a page to the database. If the page has already been registered, update the page."""
 
-        def extract_general_snippet(snippets: Dict[str, List[str]]) -> str:
-            for itopic in ITOPICS:
-                for snippet in snippets.get(itopic, []):
-                    if snippet:
-                        return snippet.strip()
-            return ""
-
         def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
-            reshaped = {}
-            general_snippet = extract_general_snippet(snippets)
+            # Find a general snippet
+            general_snippet = ""
             for itopic in ITOPICS:
-                snippets_about_topic = snippets.get(itopic, [])
-                if snippets_about_topic and snippets_about_topic[0]:
-                    reshaped[itopic] = snippets_about_topic[0].strip()
+                if itopic in snippets:
+                    general_snippet = snippets[itopic][0]
+                    break
+
+            # Reshape snippets.
+            reshaped = {}
+            for itopic in ITOPICS:
+                if itopic in snippets and snippets[itopic][0].strip():
+                    reshaped[itopic] = snippets[itopic][0].strip()
                 elif general_snippet:
                     reshaped[itopic] = general_snippet
                 else:
@@ -120,8 +119,92 @@ class DBHandler:
         elif not existing_page:
             self.collection.insert_one({"page": document_})
 
+    def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str) -> List[dict]:
+        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
+        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
+
+        if etopic and ecountry:
+            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+            reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
+        elif etopic:
+            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+            reshaped_pages = {}
+            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                if ecountry == 'all':
+                    continue
+                reshaped_pages[ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
+        else:
+            reshaped_pages = {}
+            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
+                if etopic == 'all':
+                    continue
+                reshaped_pages[etopic] = {}
+                for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                    if ecountry == 'all':
+                        continue
+                    reshaped_pages[etopic][ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
+        return reshaped_pages
+
+    def countries(self, ecountry: str, etopic: str, start: int, limit: int, lang: str) -> List[dict]:
+        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
+        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
+
+        if ecountry and etopic:
+            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+            reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
+        elif ecountry:
+            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+            reshaped_pages = {}
+            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
+                if etopic == 'all':
+                    continue
+                reshaped_pages[etopic] = self.get_pages(itopics, icountries, start, limit, lang)
+        else:
+            reshaped_pages = {}
+            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                if ecountry == 'all':
+                    continue
+                reshaped_pages[ecountry] = {}
+                for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
+                    if etopic == 'all':
+                        continue
+                    reshaped_pages[ecountry][etopic] = self.get_pages(itopics, icountries, start, limit, lang)
+        return reshaped_pages
+
+    def get_pages(self, itopics: List[str], icountries: List[str], start: int, limit: int, lang: str) -> List[dict]:
+        filter_ = self.get_filter(itopics, icountries)
+        sort_ = self.get_sort(itopics)
+        cur = self.collection.find(filter=filter_, sort=sort_)
+        return [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
+
     @staticmethod
-    def reshape_page(page: dict, lang) -> dict:
+    def get_filter(itopics: List[str] = None, icountries: List[str] = None) -> Dict[str, List]:
+        filters = [
+            {"$or": [
+                {"page.displayed_country": {"$ne": "jp"}},  # already filtered
+                {"$and": [
+                    {"page.displayed_country": "jp"},
+                    {"page.is_about_COVID-19": 1}
+                ]}
+            ]}
+        ]
+        if itopics:
+            filters += [{"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}]
+        if icountries:
+            filters += [{"page.displayed_country": {"$in": icountries}}]
+        return {"$and": filters}
+
+    @staticmethod
+    def get_sort(itopics: List[str] = None):
+        sort_ = [("page.orig.simple_timestamp", DESCENDING)]
+        if itopics:
+            sort_ += [(f"page.topics.{itopic}", DESCENDING) for itopic in itopics]
+        return sort_
+
+    @staticmethod
+    def reshape_page(page: dict, lang: str) -> dict:
         page["topics"] = [
             {
                 "name": ETOPIC_TRANS_MAP[(ITOPIC_ETOPIC_MAP[itopic], lang)],
@@ -132,9 +215,7 @@ class DBHandler:
         ]
         page["translated"] = page[f"{lang}_translated"]
         page["domain_label"] = page[f"{lang}_domain_label"]
-
         page["is_about_false_rumor"] = 1 if page["domain"] == "fij.info" else page["is_about_false_rumor"]
-
         del page["ja_snippets"]
         del page["en_snippets"]
         del page["ja_translated"]
@@ -142,124 +223,6 @@ class DBHandler:
         del page["ja_domain_label"]
         del page["en_domain_label"]
         return page
-
-    def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str) -> List[dict]:
-        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
-        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
-
-        base_filters = self.get_base_filters()
-        base_sort_metrics = self.get_base_sort_metrics()
-        if etopic and ecountry:
-            topic_filters = [
-                {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]}
-            ]
-            country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
-            filter_ = {"$and": base_filters + topic_filters + country_filters}
-            sort_ = base_sort_metrics + \
-                [(f"page.topics.{itopic}", DESCENDING) for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]
-            cur = self.collection.find(filter=filter_, sort=sort_)
-            reshaped_pages = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
-        elif etopic:
-            reshaped_pages = {}
-            topic_filters = [
-                {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]}
-            ]
-            sort_ = base_sort_metrics + \
-                [(f"page.topics.{itopic}", DESCENDING) for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                country_filters = [{"page.displayed_country": {"$in": icountries}}]
-                filter_ = {"$and": base_filters + topic_filters + country_filters}
-                cur = self.collection.find(filter=filter_, sort=sort_)
-                reshaped_pages[ecountry] = \
-                    [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
-        else:
-            reshaped_pages = {}
-            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                if etopic == 'all':
-                    continue
-                topic_filters = [
-                    {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}
-                ]
-                sort_ = base_sort_metrics + \
-                    [(f"page.topics.{itopic}", DESCENDING) for itopic in itopics]
-                reshaped_pages[etopic] = {}
-                for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                    if ecountry == 'all':
-                        continue
-                    country_filters = [{"page.displayed_country": {"$in": icountries}}]
-                    filter_ = {"$and": base_filters + topic_filters + country_filters}
-                    cur = self.collection.find(filter=filter_, sort=sort_)
-                    reshaped_pages[etopic][ecountry] = \
-                        [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
-        return reshaped_pages
-
-    def countries(self, ecountry: str, etopic: str, start: int, limit: int, lang: str) -> List[dict]:
-        base_filters = self.get_base_filters()
-        base_sort_metrics = self.get_base_sort_metrics()
-        if ecountry and etopic:
-            country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
-            topic_filters = [
-                {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]}
-            ]
-            filter_ = {"$and": base_filters + country_filters + topic_filters}
-            sort_ = base_sort_metrics + \
-                [(f"page.topics.{itopic}", DESCENDING) for itopic in ETOPIC_ITOPICS_MAP.get(etopic, [])]
-            cur = self.collection.find(filter=filter_, sort=sort_)
-            reshaped_pages = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
-        elif ecountry:
-            reshaped_pages = {}
-            country_filters = [{"page.displayed_country": {"$in": ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])}}]
-            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                if etopic == 'all':
-                    continue
-                topic_filters = [
-                    {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}
-                ]
-                filter_ = {"$and": base_filters + topic_filters + country_filters}
-                sort_ = base_sort_metrics + \
-                    [(f"page.topics.{itopic}", DESCENDING) for itopic in itopics]
-                cur = self.collection.find(filter=filter_, sort=sort_)
-                reshaped_pages[etopic] = [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
-        else:
-            reshaped_pages = {}
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                country_filters = [{"page.displayed_country": {"$in": icountries}}]
-                reshaped_pages[ecountry] = {}
-                for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                    if etopic == 'all':
-                        continue
-                    topic_filters = [
-                        {"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}
-                    ]
-                    filter_ = {"$and": base_filters + topic_filters + country_filters}
-                    sort_ = base_sort_metrics + \
-                        [(f"page.topics.{itopic}", DESCENDING) for itopic in itopics]
-                    cur = self.collection.find(filter=filter_, sort=sort_)
-                    reshaped_pages[ecountry][etopic] = \
-                        [self.reshape_page(doc["page"], lang) for doc in cur.skip(start).limit(limit)]
-        return reshaped_pages
-
-    @staticmethod
-    def get_base_filters():
-        base_filters = [
-            # filter out pages that are not about COVID-19
-            {"$or": [
-                {"page.displayed_country": {"$ne": "jp"}},  # already filtered
-                {"$and": [
-                    {"page.displayed_country": "jp"},
-                    {"page.is_about_COVID-19": 1}
-                ]}
-            ]}
-        ]
-        return base_filters
-
-    @staticmethod
-    def get_base_sort_metrics():
-        return [("page.orig.simple_timestamp", DESCENDING)]
 
     def update_page(self,
                     url: str,
