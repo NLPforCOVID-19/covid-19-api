@@ -258,7 +258,7 @@ class DBHandler:
             "is_useful": new_is_useful,
             "is_about_false_rumor": new_is_about_false_rumor,
             "new_country": icountry,
-            "new_topics": new_etopics.keys(),
+            "new_topics": list(new_etopics.keys()),
             "notes": notes,
             "time": datetime.now().isoformat()
         }
