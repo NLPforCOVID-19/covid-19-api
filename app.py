@@ -126,6 +126,20 @@ def update():
         raise InvalidPassword('The password is not correct')
 
 
+@app.route('/history', methods=["GET"])
+def history():
+    url = request.args.get('url')
+    with open(cfg['database']['category_check_log_path'], mode='r') as f:
+        for line in f.readlines()[::-1]:
+            if line.strip():
+                edited_info = json.loads(line.strip())
+                if edited_info.get('url', '') == url:
+                    edited_info['is_checked'] = 1
+                    return jsonify(edited_info)
+
+    return jsonify({"url": url, "is_checked": 0})
+
+
 @app.route('/meta')
 def meta():
     lang = get_lang()
