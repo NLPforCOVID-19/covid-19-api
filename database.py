@@ -183,15 +183,7 @@ class DBHandler:
 
     @staticmethod
     def get_filter(itopics: List[str] = None, icountries: List[str] = None) -> Dict[str, List]:
-        filters = [
-            {"$or": [
-                {"page.displayed_country": {"$ne": "jp"}},  # already filtered
-                {"$and": [
-                    {"page.displayed_country": "jp"},
-                    {"page.is_about_COVID-19": 1}
-                ]}
-            ]}
-        ]
+        filters = [{"page.is_about_COVID-19": 1}]
         if itopics:
             filters += [{"$or": [{f"page.topics.{itopic}": {"$exists": True}} for itopic in itopics]}]
         if icountries:
