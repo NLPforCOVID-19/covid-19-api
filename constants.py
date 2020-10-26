@@ -6,13 +6,13 @@ import itertools
 ECOUNTRY_ICOUNTRIES_MAP = {
     "jp": ["jp"],
     "cn": ["cn"],
-    "us": ["us"],
-    "eur": ["eur", "eu", "fr", "es", "de"],
-    "asia": ["asia", "kr", "in"],
-    "sa": ["sa", "br"],
-    "oceania": ["au"],
-    "africa": ["za"],
-    "int": ["int"]
+    "us": ["us", "us_other"],
+    "eur": ["eur", "eu", "fr", "es", "de", "eur_other"],
+    "asia": ["asia", "kr", "in", "asia_other"],
+    "sa": ["sa", "br", "sa_other"],
+    "oceania": ["au", "oceania_other"],
+    "africa": ["za", "africa_other"],
+    "int": ["int", "int_other"]
 }
 
 # internal country -> external country
