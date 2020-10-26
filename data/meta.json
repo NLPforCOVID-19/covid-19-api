@@ -109,8 +109,8 @@
     {
       "country": "int",
       "name": {
-        "ja": "その他国際",
-        "en": "Other"
+        "ja": "一般",
+        "en": "General"
       },
       "dataRepository": ["all"],
       "language": "en",
