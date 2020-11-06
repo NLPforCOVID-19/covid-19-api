@@ -12,6 +12,7 @@ flask-cors = "*"
 pandas = "*"
 pymongo = "*"
 mojimoji = "*"
+elasticsearch = "*"
 
 [requires]
 python_version = "3.7"
