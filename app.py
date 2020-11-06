@@ -13,13 +13,15 @@ here = os.path.dirname(os.path.abspath(__file__))
 cfg = load_config()
 
 app = Flask(__name__)
-CORS(app, origins=cfg["access_control_allow_origin"])
+CORS(app, origins=cfg['access_control_allow_origin'])
 
 mongo = DBHandler(
     host=cfg['database']['host'],
     port=cfg['database']['port'],
     db_name=cfg['database']['db_name'],
     collection_name=cfg['database']['collection_name'],
+    es_host=cfg['es']['host'],
+    es_port=cfg['es']['port'],
 )
 
 
@@ -59,74 +61,68 @@ class InvalidPassword(Exception):
 
 @app.route('/')
 def index():
-    return "it works"
+    return 'it works'
 
 
 def get_start() -> int:
-    start = request.args.get("start", "0")  # NOTE: set the default value as a `str` object
-    if start.isdecimal():
-        start = int(start)
-    else:
-        raise InvalidUsage('Parameter `start` must be integers')
-    return start
+    start = request.args.get('start', '0')  # NOTE: set the default value as a string object.
+    if not start.isdecimal():
+        raise InvalidUsage('Parameter `start` must be an integer.')
+    return int(start)
 
 
 def get_limit() -> int:
-    limit = request.args.get("limit", "10")  # NOTE: set the default value as a `str` object
-    if limit.isdecimal():
-        limit = int(limit)
-    else:
-        raise InvalidUsage('Parameter `limit` must be integers')
-    return limit
+    limit = request.args.get('limit', '10')  # NOTE: set the default value as a string object.
+    if not limit.isdecimal():
+        raise InvalidUsage('Parameter `limit` must be an integer.')
+    return int(limit)
 
 
 def get_lang() -> str:
-    lang = request.args.get("lang", "ja")
-    if lang not in {"ja", "en"}:
-        raise InvalidUsage('Allowed languages are `ja` and `en`')
+    lang = request.args.get('lang', 'ja')
+    if lang not in {'ja', 'en'}:
+        raise InvalidUsage('Allowed languages are `ja` and `en`.')
     return lang
+
+
+def get_query() -> str:
+    return request.args.get('query', '')
 
 
 @app.route('/classes')
 @app.route('/classes/<class_>')
 @app.route('/classes/<class_>/<country>')
 def classes(class_=None, country=None):
-    return jsonify(mongo.classes(class_, country, start=get_start(), limit=get_limit(), lang=get_lang()))
+    return jsonify(mongo.classes(class_, country, get_start(), get_limit(), get_lang(), get_query()))
 
 
 @app.route('/countries')
 @app.route('/countries/<country>')
 @app.route('/countries/<country>/<class_>')
 def countries(country=None, class_=None):
-    return jsonify(mongo.countries(country, class_, start=get_start(), limit=get_limit(), lang=get_lang()))
+    return jsonify(mongo.countries(country, class_, get_start(), get_limit(), get_lang()))
 
 
-@app.route('/update', methods=["POST"])
+@app.route('/update', methods=['POST'])
 def update():
     data = request.get_json()
-    password = data.get('password')
-    if password == cfg['password']:
-        url = data.get('url')
-        is_about_covid_19 = data.get('is_about_COVID-19')
-        is_useful = data.get('is_useful')
-        is_about_false_rumor = data.get('is_about_false_rumor')
-        country = data.get('new_displayed_country')
-        classes_ = data.get('new_classes')
-        notes = han_to_zen(str(data.get('notes')))
-        updated = mongo.update_page(url=url,
-                                    is_about_covid_19=is_about_covid_19,
-                                    is_useful=is_useful,
-                                    is_about_false_rumor=is_about_false_rumor,
-                                    icountry=country,
-                                    etopics=classes_,
-                                    notes=notes,
-                                    category_check_log_path=cfg['database']['category_check_log_path'])
-        return jsonify(updated)
-    else:
+
+    if data.get('password') != cfg['password']:
         raise InvalidPassword('The password is not correct')
 
+    return jsonify(mongo.update_page(
+        url=data.get('url'),
+        is_about_covid_19=data.get('is_about_COVID-19'),
+        is_useful=data.get('is_useful'),
+        is_about_false_rumor=data.get('is_about_false_rumor'),
+        icountry=data.get('new_displayed_country'),
+        etopics=data.get('new_classes'),
+        notes=han_to_zen(str(data.get('notes'))),
+        category_check_log_path=cfg['database']['category_check_log_path']
+    ))
 
-@app.route('/history', methods=["GET"])
+
+@app.route('/history', methods=['GET'])
 def history():
     url = request.args.get('url')
     with open(cfg['database']['category_check_log_path'], mode='r') as f:
@@ -136,39 +132,38 @@ def history():
                 if edited_info.get('url', '') == url:
                     edited_info['is_checked'] = 1
                     return jsonify(edited_info)
-
-    return jsonify({"url": url, "is_checked": 0})
+    return jsonify({'url': url, 'is_checked': 0})
 
 
 @app.route('/meta')
 def meta():
     lang = get_lang()
-    with open(os.path.join(here, "data", f"meta.json")) as f:
+    with open(os.path.join(here, 'data', 'meta.json')) as f:
         meta_info = json.load(f)
 
     def reshape_country(country):
         return {
-            "country": country["country"],
-            "name": country["name"][lang],
-            "language": country["language"],
-            "representativeSiteUrl": country["representativeSiteUrl"]
+            'country': country['country'],
+            'name': country['name'][lang],
+            'language': country['language'],
+            'representativeSiteUrl': country['representativeSiteUrl']
         }
 
     meta_info = {
-        "topics": [topic[lang] for topic in meta_info["topics"]],
-        "countries": [reshape_country(country) for country in meta_info["countries"]]
+        'topics': [topic[lang] for topic in meta_info['topics']],
+        'countries': [reshape_country(country) for country in meta_info['countries']]
     }
 
-    with open(os.path.join(here, "data", "stats.json")) as f:
-        stats_info = json.load(f)["stats"]
+    with open(os.path.join(here, 'data', 'stats.json')) as f:
+        stats_info = json.load(f)['stats']
 
-    with open(os.path.join(here, "data", "sources.json")) as f:
+    with open(os.path.join(here, 'data', 'sources.json')) as f:
         sources_info = json.load(f)
 
-    country_code_index_map = {country["country"]: i for i, country in enumerate(meta_info["countries"])}
+    country_code_index_map = {country['country']: i for i, country in enumerate(meta_info['countries'])}
     for country_code in stats_info:
-        meta_info["countries"][country_code_index_map[country_code]]["stats"] = stats_info[country_code]
-        meta_info["countries"][country_code_index_map[country_code]]["sources"] = sources_info[country_code]
+        meta_info['countries'][country_code_index_map[country_code]]['stats'] = stats_info[country_code]
+        meta_info['countries'][country_code_index_map[country_code]]['sources'] = sources_info[country_code]
 
     return jsonify(meta_info)
 
