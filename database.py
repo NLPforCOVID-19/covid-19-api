@@ -184,17 +184,17 @@ class DBHandler:
     def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         def get_es_query(regions: List[str]):
             return {
-                "query": {
-                    "bool": {
-                        "must": [
-                            {"bool": {"should": [{"term": {"region": region}} for region in regions]}},
-                            {"match": {"text": query}},
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'bool': {'should': [{'term': {'region': region}} for region in regions]}},
+                            {'match': {'text': query}},
                         ],
                     }
                 },
-                "sort": [{"timestamp.local": {"order": "desc", "nested_path": "timestamp"}}],
-                "from": start,
-                "size": limit,
+                'sort': [{'timestamp.local': {'order': 'desc', 'nested': {'path': 'timestamp'}}}],
+                'from': start,
+                'size': limit,
             }
 
         def convert_hits_to_pages(hits: list) -> list:
