@@ -18,6 +18,9 @@
     "result_dir": "<path-to-result-dir>",
     "useful_white_list": "<path-to-white-list-of-useful-pages>"
   },
+  "feedback": {
+    "feedback_log_file": "<path-to-feedback-log-file>"
+  },
   "source": "<path-to-information-source-list>",
   "password": "<password>"
 }
