@@ -144,7 +144,7 @@ def feedback():
         raise InvalidUsage('feedback content is too long')
     today = datetime.today()
     with open(cfg['feedback']['feedback_log_file'], mode='a'):
-        w.write(f'{today} {feedback_content}')
+        w.write(f'{today}\t{feedback_content}\n')
     # successfull response is empty
     return jsonify({})
 
