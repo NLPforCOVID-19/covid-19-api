@@ -138,13 +138,13 @@ def history():
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
-    data = requrest.get_json()
-    feedback_content = data['content']
+    data = request.get_json()
+    feedback_content = data.get('content')
     if len(feedback_content) > 1000:
         raise InvalidUsage('feedback content is too long')
     today = datetime.today()
-    with open(cfg['feedback']['feedback_log_file'], mode='a'):
-        w.write(f'{today}\t{feedback_content}\n')
+    with open(cfg['feedback']['feedback_log_file'], mode='a') as f:
+        f.write(f'{today}\t{feedback_content}\n')
     # successfull response is empty
     return jsonify({})
 
