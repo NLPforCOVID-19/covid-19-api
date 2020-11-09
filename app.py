@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 
+import requests
 from mojimoji import han_to_zen
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -139,13 +140,30 @@ def history():
 @app.route('/feedback', methods=['POST'])
 def feedback():
     data = request.get_json()
-    feedback_content = data.get('content')
+    feedback_content = data.get('content', '')
+
+    if feedback_content == '':
+        return InvalidUsage('feedback content is empty')
+
     if len(feedback_content) > 1000:
         raise InvalidUsage('feedback content is too long')
+
+    # Send the feedback message to the slack channel.
+    _ = requests.post(
+        'https://slack.com/api/chat.postMessage',
+        data={
+            'token': cfg['feedback']['slack']['access_token'],
+            'channel': cfg['feedback']['slack']['channel'],
+            'text': feedback_content,
+        }
+    )
+
+    # Append the feedback message to the log file.
     today = datetime.today()
     with open(cfg['feedback']['feedback_log_file'], mode='a') as f:
         f.write(f'{today}\t{feedback_content}\n')
-    # successfull response is empty
+
+    # Successful response is empty.
     return jsonify({})
 
 
