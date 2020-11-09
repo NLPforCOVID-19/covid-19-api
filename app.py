@@ -1,6 +1,7 @@
 """An API server for covid-19-ui."""
 import json
 import os
+from datetime import datetime
 
 from mojimoji import han_to_zen
 from flask import Flask, request, jsonify
@@ -133,6 +134,19 @@ def history():
                     edited_info['is_checked'] = 1
                     return jsonify(edited_info)
     return jsonify({'url': url, 'is_checked': 0})
+
+
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    data = request.get_json()
+    feedback_content = data.get('content')
+    if len(feedback_content) > 1000:
+        raise InvalidUsage('feedback content is too long')
+    today = datetime.today()
+    with open(cfg['feedback']['feedback_log_file'], mode='a') as f:
+        f.write(f'{today}\t{feedback_content}\n')
+    # successfull response is empty
+    return jsonify({})
 
 
 @app.route('/meta')
