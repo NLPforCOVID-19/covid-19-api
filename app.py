@@ -114,6 +114,7 @@ def update():
 
     return jsonify(mongo.update_page(
         url=data.get('url'),
+        is_hidden=data.get('is_hidden'),
         is_about_covid_19=data.get('is_about_COVID-19'),
         is_useful=data.get('is_useful'),
         is_about_false_rumor=data.get('is_about_false_rumor'),
