@@ -105,6 +105,7 @@ class DBHandler:
             'ja_snippets': ja_snippets,
             'en_snippets': en_snippets,
             'is_checked': is_checked,
+            'is_hidden': 0,
             'is_about_COVID-19': is_about_covid_19,
             'is_useful': is_useful,
             'is_clear': is_clear,
@@ -227,7 +228,7 @@ class DBHandler:
 
     @staticmethod
     def get_filter(itopics: List[str] = None, icountries: List[str] = None) -> Dict[str, List]:
-        filters = [{'page.is_about_COVID-19': 1}]
+        filters = [{"$and": [{"page.is_about_COVID-19": 1}, {"page.is_hidden": 0}]}]
         if itopics:
             filters += [{'$or': [{f'page.topics.{itopic}': {'$exists': True}} for itopic in itopics]}]
         if icountries:
@@ -264,6 +265,7 @@ class DBHandler:
 
     def update_page(self,
                     url: str,
+                    is_hidden: bool,
                     is_about_covid_19: bool,
                     is_useful: bool,
                     is_about_false_rumor: bool,
@@ -271,6 +273,7 @@ class DBHandler:
                     etopics: List[str],
                     notes: str,
                     category_check_log_path: str) -> Dict[str, Union[int, str, List[str]]]:
+        new_is_hidden = 1 if is_hidden else 0
         new_is_about_covid_19 = 1 if is_about_covid_19 else 0
         new_is_useful = 1 if is_useful else 0
         new_is_about_false_rumor = 1 if is_about_false_rumor else 0
@@ -279,6 +282,7 @@ class DBHandler:
         self.collection.update_one(
             {'page.url': url},
             {'$set': {
+                'page.is_hidden': new_is_hidden,
                 'page.is_about_COVID-19': new_is_about_covid_19,
                 'page.is_useful': new_is_useful,
                 'page.is_about_false_rumor': new_is_about_false_rumor,
@@ -290,6 +294,7 @@ class DBHandler:
         )
         updated = {
             'url': url,
+            'is_hidden': new_is_hidden,
             'is_about_COVID-19': new_is_about_covid_19,
             'is_useful': new_is_useful,
             'is_about_false_rumor': new_is_about_false_rumor,
@@ -347,6 +352,7 @@ def main():
                     'page.is_useful': category_checked_page['is_useful'],
                     'page.is_about_false_rumor': category_checked_page.get('is_about_false_rumor', 0),
                     'page.is_checked': 1,
+                    'page.is_hidden': category_checked_page.get('is_hidden', 0),
                     'page.displayed_country': category_checked_page['new_country'],
                     'page.topics': {new_topic: 1.0 for new_topic in category_checked_page['new_topics']}
                 }},

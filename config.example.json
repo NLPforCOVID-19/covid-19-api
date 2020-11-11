@@ -15,8 +15,7 @@
     "port": "<port> (NOTE: This value must be an integer. Remove double-quotes.)"
   },
   "crowdsourcing": {
-    "result_dir": "<path-to-result-dir>",
-    "useful_white_list": "<path-to-white-list-of-useful-pages>"
+    "result_dir": "<path-to-result-dir>"
   },
   "feedback": {
     "slack": {
