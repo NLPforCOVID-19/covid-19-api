@@ -42,5 +42,5 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           REMOTE: ${{ secrets.REMOTE }}
         run: |
-          chmod -R g+w out
+          chmod -R g+w .
           rsync -av . $REMOTE:$DEPLOY_PATH
