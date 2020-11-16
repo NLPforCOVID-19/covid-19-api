@@ -216,9 +216,11 @@ class DBHandler:
                     reshaped_pages.append(self.reshape_page(doc['page'], lang, search_snippet=hit['highlight']['text']))
             return reshaped_pages
 
+        index = 'covid19-pages-ja' if lang == 'ja' else 'covid19-pages-en'
+
         if ecountry:
             body = get_es_query([c for c in ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])])
-            r = self.es.search(index='covid19-pages-ja', body=body)
+            r = self.es.search(index=index, body=body)
             return convert_hits_to_pages(r['hits']['hits'])
         else:
             reshaped_pages = {}
@@ -226,7 +228,7 @@ class DBHandler:
                 if ecountry == 'all':
                     continue
                 body = get_es_query(icountries)
-                r = self.es.search(index='covid19-pages-ja', body=body)
+                r = self.es.search(index=index, body=body)
                 reshaped_pages[ecountry] = convert_hits_to_pages(r['hits']['hits'])
             return reshaped_pages
 
