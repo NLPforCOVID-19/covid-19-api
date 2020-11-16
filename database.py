@@ -193,7 +193,17 @@ class DBHandler:
                         ],
                     }
                 },
-                'sort': [{'timestamp.local': {'order': 'desc', 'nested': {'path': 'timestamp'}}}],
+                "highlight": {
+                    "fields": {
+                        "text": {}
+                    }
+                },
+                'sort': [{
+                    'timestamp.local': {
+                        'order': 'desc',
+                        'nested': {'path': 'timestamp'}
+                    }
+                }],
                 'from': start,
                 'size': limit,
             }
@@ -203,7 +213,7 @@ class DBHandler:
             for hit in hits:
                 doc = self.collection.find_one(filter={'page.url': hit['_source']['url']})
                 if doc:
-                    reshaped_pages.append(self.reshape_page(doc['page'], lang))
+                    reshaped_pages.append(self.reshape_page(doc['page'], lang, search_snippet=hit['highlight']['text']))
             return reshaped_pages
 
         if ecountry:
@@ -243,7 +253,7 @@ class DBHandler:
         return sort_
 
     @staticmethod
-    def reshape_page(page: dict, lang: str) -> dict:
+    def reshape_page(page: dict, lang: str, search_snippet=None) -> dict:
         page['topics'] = [
             {
                 'name': ETOPIC_TRANS_MAP[(ITOPIC_ETOPIC_MAP[itopic], lang)],
@@ -252,6 +262,14 @@ class DBHandler:
             }
             for itopic in page['topics']
         ]
+        if search_snippet:
+            page['topics'].append(
+                {
+                    'name': ETOPIC_TRANS_MAP[('Search', lang)],
+                    'snippet': search_snippet[0].replace('<em>', '').replace('</em>', ''),
+                    'relatedness': -1.
+                }
+            )
         page['translated'] = page[f'{lang}_translated']
         page['domain_label'] = page[f'{lang}_domain_label']
         page['is_about_false_rumor'] = 1 if page['domain'] == 'fij.info' else page['is_about_false_rumor']
