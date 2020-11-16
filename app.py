@@ -10,6 +10,7 @@ from flask_cors import CORS
 
 from util import load_config
 from database import DBHandler
+from constants import TOPICS, COUNTRIES
 
 here = os.path.dirname(os.path.abspath(__file__))
 cfg = load_config()
@@ -172,8 +173,6 @@ def feedback():
 @app.route('/meta')
 def meta():
     lang = get_lang()
-    with open(os.path.join(here, 'data', 'meta.json')) as f:
-        meta_info = json.load(f)
 
     def reshape_country(country):
         return {
@@ -184,8 +183,8 @@ def meta():
         }
 
     meta_info = {
-        'topics': [topic[lang] for topic in meta_info['topics']],
-        'countries': [reshape_country(country) for country in meta_info['countries']]
+        'topics': [topic[lang] for topic in TOPICS],
+        'countries': [reshape_country(country) for country in COUNTRIES]
     }
 
     with open(os.path.join(here, 'data', 'stats.json')) as f:

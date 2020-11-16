@@ -7,6 +7,8 @@ import urllib.request
 
 import pandas as pd
 
+from constants import COUNTRIES
+
 
 # fetch data from https://github.com/CSSEGISandData/COVID-19
 def fetch_data(url):
@@ -23,15 +25,7 @@ confirmation_url = urllib.parse.urljoin(BASE, "time_series_covid19_confirmed_glo
 death_df = fetch_data(death_url)
 confirmation_df = fetch_data(confirmation_url)
 
-# load target countries
-here = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(here, "data")
-metadata_path = os.path.join(data_dir, "meta.json")
-with open(metadata_path) as f:
-    countries = json.load(f)["countries"]
 
-
-# extract statistics
 def get_last_update(df):
     return df.columns[-1]
 
@@ -50,7 +44,7 @@ def get_statistics(df, accessors):
 last_update = get_last_update(death_df)
 
 stats = {}
-for country in countries:
+for country in COUNTRIES:
     death_total, death_today = get_statistics(death_df, country["dataRepository"])
     confirmation_total, confirmation_today = get_statistics(confirmation_df, country["dataRepository"])
     stats[country["country"]] = {
@@ -67,6 +61,7 @@ result = {
 }
 
 # output the result as a JSON file
-stats_path = os.path.join(data_dir, "stats.json")
-with open(stats_path, "w") as f:
+data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+os.makedirs(data_dir, exist_ok=True)
+with open(os.path.join(data_dir, "stats.json"), "w") as f:
     json.dump(result, f, ensure_ascii=False, indent=2)

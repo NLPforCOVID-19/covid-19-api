@@ -1,18 +1,152 @@
-import os
-import json
 import itertools
+
+TOPICS = [
+    {
+        'ja': '感染状況',
+        'en': 'Current state of infection'
+    },
+    {
+        'ja': '予防・防疫・緩和',
+        'en': 'Prevention and mitigation measures'
+    },
+    {
+        'ja': '症状・治療・検査など医療情報',
+        'en': 'Symptoms, treatments, and medical information'
+    },
+    {
+        'ja': '経済・福祉政策',
+        'en': 'Economic and welfare policies'
+    },
+    {
+        'ja': '教育関連',
+        'en': 'Education'
+    },
+    {
+        'ja': 'その他',
+        'en': 'Other'
+    }
+]
+
+COUNTRIES = [
+    {
+        "country": "jp",
+        "name": {
+            "ja": "日本",
+            "en": "Japan"
+        },
+        "dataRepository": ["Japan"],
+        "language": "ja",
+        "representativeSiteUrl": "https://www.kantei.go.jp/jp/headline/kansensho/coronavirus.html"
+    },
+    {
+        "country": "cn",
+        "name": {
+            "ja": "中国",
+            "en": "China"
+        },
+        "dataRepository": ["China"],
+        "language": "zh",
+        "representativeSiteUrl": "http://www.gov.cn/fuwu/zt/yqfkzq/index.htm"
+    },
+    {
+        "country": "us",
+        "name": {
+            "ja": "アメリカ",
+            "en": "United States"
+        },
+        "dataRepository": ["US"],
+        "language": "en",
+        "representativeSiteUrl": "https://www.cdc.gov/coronavirus/index.html"
+    },
+    {
+        "country": "eur",
+        "name": {
+            "ja": "ヨーロッパ",
+            "en": "Europe"
+        },
+        "dataRepository": ["Belgium", "Bulgaria", "Czechia", "Denmark", "Germany", "Estonia", "Ireland", "Greece",
+                           "Spain", "France", "Croatia", "Italy", "Cyprus", "Latvia", "Lithuania", "Luxembourg",
+                           "Hungary", "Malta", "Netherlands", "Austria", "Poland", "Portugal", "Romania", "Slovenia",
+                           "Slovakia", "Finland", "Sweden"],
+        "language": "en",
+        "representativeSiteUrl": "https://www.ecdc.europa.eu/en/covid-19-pandemic"
+    },
+    {
+        "country": "asia",
+        "name": {
+            "ja": "アジア (日本・中国を除く)",
+            "en": "Asia (other than Japan & China)"
+        },
+        "dataRepository": ["Indonesia", "India", "Korea, South", "Thailand", "Vietnam", "Singapore", "Philippines",
+                           "Malaysia", "Pakistan", "Iran", "Israel", "Mongolia", "Maldives", "Cambodia", "Saudi Arabia",
+                           "Nepal", "Bangladesh", "Afghanistan", "Sri Lanka", "Laos", "Uzbekistan", "Iraq", "Syria",
+                           "United Arab Emirates", "Armenia", "Lebanon", "Brunei", "Jordan", "Qatar", "Palestine",
+                           "Yemen", "Tajikistan", "Timor-Leste", "Bhutan", "Kuwait", "Oman", "Turkmenistan",
+                           "Kyrgyzstan", "Bahrain"],
+        "language": "en",
+        "representativeSiteUrl": "#"
+    },
+    {
+        "country": "sa",
+        "name": {
+            "ja": "南アメリカ",
+            "en": "South America"
+        },
+        "dataRepository": ["Brazil", "Argentina", "Colombia", "Peru", "Chile", "Ecuador", "Bolivia", "Venezuela",
+                           "Guyana", "Uruguay", "Suriname", "Paraguay"],
+        "language": "en",
+        "representativeSiteUrl": "#"
+    },
+    {
+        "country": "oceania",
+        "name": {
+            "ja": "オセアニア",
+            "en": "Oceania"
+        },
+        "dataRepository": ["New Zealand", "Australia", "Fiji", "Papua New Guinea"],
+        "language": "en",
+        "representativeSiteUrl": "#"
+    },
+    {
+        "country": "africa",
+        "name": {
+            "ja": "アフリカ",
+            "en": "Africa"
+        },
+        "dataRepository": ["South Africa", "Nigeria", "Kenya", "Ghana", "Ethiopia", "Congo (Brazzaville)",
+                           "Congo (Kinshasa", "Tanzania", "Morocco", "Senegal", "Mali", "Uganda", "Cote d'Ivoire",
+                           "Madagascar", "Angola", "Zimbabwe", "Sudan", "Cameron", "Zambia", "Algeria", "Somalia",
+                           "Libya", "Rwanda", "Namibia", "Niger", "Tunisia", "Mauritania", "Mozambique",
+                           "Central African Republic", "Botswana", "Guinea", "Togo", "Burkina Faso", "Benin",
+                           "Mauritius", "Gambia", "Djibouti", "Malawi", "Eritrea", "Chad", "Gabon", "Western Sahara",
+                           "Seychelles", "South Sudan", "Sierra Leone", "Eswatini", "Lesotho", "Burundi",
+                           "Equatorial Guinea"],
+        "language": "en",
+        "representativeSiteUrl": "#"
+    },
+    {
+        "country": "int",
+        "name": {
+            "ja": "一般",
+            "en": "General"
+        },
+        "dataRepository": ["all"],
+        "language": "en",
+        "representativeSiteUrl": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019"
+    }
+]
 
 # external country -> internal countries
 ECOUNTRY_ICOUNTRIES_MAP = {
-    "jp": ["jp"],
-    "cn": ["cn"],
-    "us": ["us", "us_other"],
-    "eur": ["eur", "eu", "fr", "es", "de", "eur_other"],
-    "asia": ["asia", "kr", "in", "asia_other"],
-    "sa": ["sa", "br", "sa_other"],
-    "oceania": ["au", "oceania_other"],
-    "africa": ["za", "africa_other"],
-    "int": ["int", "int_other"]
+    'jp': ['jp'],
+    'cn': ['cn'],
+    'us': ['us', 'us_other'],
+    'eur': ['eur', 'eu', 'fr', 'es', 'de', 'eur_other'],
+    'asia': ['asia', 'kr', 'in', 'asia_other'],
+    'sa': ['sa', 'br', 'sa_other'],
+    'oceania': ['au', 'oceania_other'],
+    'africa': ['za', 'africa_other'],
+    'int': ['int', 'int_other']
 }
 
 # internal country -> external country
@@ -26,17 +160,17 @@ ECOUNTRIES = list(ECOUNTRY_ICOUNTRIES_MAP.keys())
 # internal countries
 ICOUNTRIES = list(itertools.chain(*ECOUNTRY_ICOUNTRIES_MAP.values()))
 
-# add a special country "all"
-ECOUNTRY_ICOUNTRIES_MAP["all"] = ICOUNTRIES
+# add a special country 'all'
+ECOUNTRY_ICOUNTRIES_MAP['all'] = ICOUNTRIES
 
 # external topic -> internal topics
 ETOPIC_ITOPICS_MAP = {
-    "感染状況": ["感染状況"],
-    "予防・防疫・緩和": ["予防・緊急事態宣言"],
-    "症状・治療・検査など医療情報": ["症状・治療・検査など医療情報"],
-    "経済・福祉政策": ["経済・福祉政策"],
-    "教育関連": ["休校・オンライン授業"],
-    "その他": ["その他", "芸能・スポーツ"]
+    '感染状況': ['感染状況'],
+    '予防・防疫・緩和': ['予防・緊急事態宣言'],
+    '症状・治療・検査など医療情報': ['症状・治療・検査など医療情報'],
+    '経済・福祉政策': ['経済・福祉政策'],
+    '教育関連': ['休校・オンライン授業'],
+    'その他': ['その他', '芸能・スポーツ']
 }
 
 # internal topic -> external topic
@@ -51,30 +185,23 @@ ETOPICS = list(ETOPIC_ITOPICS_MAP.keys())
 ITOPICS = list(itertools.chain(*ETOPIC_ITOPICS_MAP.values()))
 
 # external topics
-ETOPIC_ITOPICS_MAP["all"] = ITOPICS
-
-
-here = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(here, "data", f"meta.json")) as f:
-    meta_info = json.load(f)
+ETOPIC_ITOPICS_MAP['all'] = ITOPICS
 
 # external topic + language -> external topic in the language
-LANGUAGES = ("ja", "en")
-topics = meta_info["topics"]
+LANGUAGES = ('ja', 'en')
 ETOPIC_TRANS_MAP = {
     (etopic, lang): topic[lang]
     for lang in LANGUAGES
-    for topic in topics
+    for topic in TOPICS
     for etopic in topic.values()
 }
 
 # external country _ language -> external country in the language
-countries = meta_info["countries"]
 ECOUNTRY_TRANS_MAP = {
-    (ecountry, lang): country["name"][lang]
+    (ecountry, lang): country['name'][lang]
     for lang in LANGUAGES
-    for country in countries
-    for ecountry in country["name"].items()
+    for country in COUNTRIES
+    for ecountry in country['name'].items()
 }
 
 SCORE_THRESHOLD = 0.7
