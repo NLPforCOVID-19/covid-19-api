@@ -2,21 +2,16 @@
 
 ## Requirements
 
-- Python 3.6 or later
-- [Flask](https://pypi.org/project/Flask/)
-- [Flask-Bootstrap4](https://pypi.org/project/Flask-Bootstrap4/)
-- [Flask-Cors](https://pypi.org/project/Flask-Cors/)
-- [pandas](https://pypi.org/project/pandas/)
-- [pymongo](https://pypi.org/project/pymongo/)
+- See [pyproject.toml](pyproject.toml).
 
 ## Setup
 
 ### Python
 
-To install all the dependencies, use `pipenv`.
+To install all the dependencies, use `poetry`.
 
 ```
-$ pipenv sync
+$ poetry install
 ```
 
 ### MongoDB
@@ -33,51 +28,40 @@ $ sudo mongod --dbpath <dbpath> --logpath <logpath> --port <port> [--fork]
 
 ### API Configuration
 
-Copy `config.example.json` to `config.json`, and then rewrite the following values.
+Run `poetry run python conf.py`.
 
-- activator: The path to the script that activates the Python virtual environment.
-- database.input_page_path: The path to a JSONL file created by the [text-classifier](https://github.com/NLPforCOVID-19/text-classifier).
-- database.host: The hostname of the system running the `mongod` process.
-- database.port: The port number that the `mongod` process is listening (default: 27017). The port number must be written as an integer.
-- database.db_name: A database name (e.g., "covid19DB").
-- database.collection_name: A collection name (e.g., "pages").
-- database.log_path: The path to a log file.
+Before running this script, set the following environment variables:
 
-### Data Initialization and Update
+- ACTIVATOR: Path to `<virtual-env>/bin/activate_this.py`.
+- DB_HOST: The hostname where MongoDB is running.
+- DB_PORT: The port number that MongoDB is listening.
+- DB_DB_NAME: The DB identifier.
+- DB_COLLECTION_NAME: The collection identifier.
+- ES_HOST: The hostname where ElasticSearch is running.
+- ES_PORT: The hostname where ElasticSearch is listening.
+- FB_LOG_FILE: Where to write feedback messages.
+- SLACK_ACCESS_TOKENS: Slack access tokens.
+- SLACK_APP_CHANNELS: Slack channels.
+- SOURCE: Path to a text file listing information sources.
 
-#### Web page information
+### Data Initialization & Update
 
-Run the following script to initialize and also update the web page information.
-
-```
-$ pipenv run python database.py
-```
-
-NOTE: After the first execution of the above script, create indexes to improve search performance.
+#### Article
 
 ```
-$ mongo --port <port>
-> use <db-name>
-> db[<collection_name>].createIndex({'page.timestamp': -1})
-> db[<collection_name>].createIndex({'page.classes.COVID-19関連': -1})
-> db[<collection_name>].createIndex({'page.classes.COVID-19関連': -1, 'page.orig.timestamp': 1})
-> db[<collection_name>].createIndex({'page.classes.COVID-19関連': -1, 'page.country': -1, 'page.orig.timestamp': 1})
+$ poetry run python database.py
 ```
 
-#### Statistics
-
-Run the following script to initialize and also update the statistics.
+#### Stats
 
 ```
-$ pipenv run python stats.py
+$ poetry run python stats.py
 ```
 
-#### Information Sources
-
-Run the following script to initialize and also update the information sources.
+#### Information Source
 
 ```
-$ pipenv run python sources.py
+$ poetry run python sources.py
 ```
 
 ## Run
@@ -85,8 +69,6 @@ $ pipenv run python sources.py
 To start this API server, run the following command.
 
 ```
-$ pipenv run flask run
+$ poetry run flask run
  * Running on http://127.0.0.1:5000/
 ```
-
-To make sure it is working properly, open `http://127.0.0.1:5000/` with a browser.

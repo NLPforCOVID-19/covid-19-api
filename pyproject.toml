@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "covid-19-api"
+version = "0.1.0"
+description = ""
+authors = ["Hirokazu Kiyomaru <kiyomaru@nlp.ist.i.kyoto-u.ac.jp>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+requests = "^2.25.0"
+Flask = "^1.1.2"
+Flask-Cors = "^3.0.9"
+pandas = "^1.1.4"
+mojimoji = "^0.0.11"
+pymongo = "^3.11.0"
+elasticsearch = "^7.10.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
