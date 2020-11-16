@@ -15,7 +15,7 @@ jobs:
           SSH_PRIVATE: ${{ secrets.SSH_PRIVATE }}
           SSH_CONFIG: ${{ secrets.SSH_CONFIG }}
           KNOWN_HOSTS: ${{ secrets.KNOWN_HOSTS }}
-        run:
+        run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
@@ -35,12 +35,12 @@ jobs:
           SLACK_ACCESS_TOKENS: ${{ secrets.SLACK_ACCESS_TOKENS }}
           SLACK_APP_CHANNELS: ${{ secrets.SLACK_APP_CHANNELS }}
           SOURCE: ${{ secrets.SOURCE }}
-        run:
+        run: |
           python conf.py
       - name: Deploy to server
         env:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           REMOTE: ${{ secrets.REMOTE }}
-        run:
+        run: |
           chmod -R g+w out
           rsync -av . $REMOTE:$DEPLOY_PATH
