@@ -1,0 +1,30 @@
+name: Deployment
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install SSH key
+        env:
+          SSH_PRIVATE: ${{ secrets.SSH_PRIVATE }}
+          SSH_CONFIG: ${{ secrets.SSH_CONFIG }}
+          KNOWN_HOSTS: ${{ secrets.KNOWN_HOSTS }}
+        run:
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "$SSH_CONFIG" > ~/.ssh/config
+          echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Deploy to server
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          REMOTE: ${{ secrets.REMOTE }}
+        run:
+          chmod -R g+w out
+          rsync -av . $REMOTE:$DEPLOY_PATH
