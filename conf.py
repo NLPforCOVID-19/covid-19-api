@@ -3,7 +3,7 @@ import json
 
 config = {
     'activator': os.getenv('ACTIVATOR'),
-    'access_control_allow_origin': '',
+    'access_control_allow_origin': '*',
     'database': {
         'input_page_path': os.getenv('DB_INPUT_PAGE_PATH'),
         'host': os.getenv('DB_HOST'),
