@@ -150,14 +150,15 @@ def feedback():
         raise InvalidUsage('feedback content is too long')
 
     # Send the feedback message to the slack channel.
-    _ = requests.post(
-        'https://slack.com/api/chat.postMessage',
-        data={
-            'token': cfg['feedback']['slack']['access_token'],
-            'channel': cfg['feedback']['slack']['channel'],
-            'text': feedback_content,
-        }
-    )
+    for slack_app in cfg['feedback']['slack']:
+        _ = requests.post(
+            'https://slack.com/api/chat.postMessage',
+            data={
+                'token': slack_app['access_token'],
+                'channel': slack_app['channel'],
+                'text': feedback_content,
+            }
+        )
 
     # Append the feedback message to the log file.
     today = datetime.today()
