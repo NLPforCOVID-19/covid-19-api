@@ -265,7 +265,7 @@ class DBHandler:
         if search_snippet:
             page['topics'].append(
                 {
-                    'name': ETOPIC_TRANS_MAP[('Search', lang)],
+                    'name': 'Search',
                     'snippet': search_snippet[0].replace('<em>', '').replace('</em>', ''),
                     'relatedness': -1.
                 }
