@@ -34,6 +34,8 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD }}
           SLACK_ACCESS_TOKENS: ${{ secrets.SLACK_ACCESS_TOKENS }}
           SLACK_APP_CHANNELS: ${{ secrets.SLACK_APP_CHANNELS }}
+          DB_CATEGORY_CHECK_LOG_PATH: ${{ secrets.DB_CATEGORY_CHECK_LOG_PATH }}
+          DB_LOG_PATH: ${{ secrets.DB_LOG_PATH }}
           SOURCE: ${{ secrets.SOURCE }}
         run: |
           python conf.py

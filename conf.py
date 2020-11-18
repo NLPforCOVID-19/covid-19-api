@@ -10,7 +10,7 @@ config = {
         'port': int(os.getenv('DB_PORT')),
         'db_name': os.getenv('DB_DB_NAME'),
         'collection_name': os.getenv('DB_COLLECTION_NAME'),
-        'log_path': os.getenv('DB_LOG_DIR'),
+        'log_path': os.getenv('DB_LOG_PATH'),
         'category_check_log_path': os.getenv('DB_CATEGORY_CHECK_LOG_PATH')
     },
     'es': {
