@@ -209,12 +209,12 @@ class DBHandler:
             }
 
         def convert_hits_to_pages(hits: list) -> list:
-            reshaped_pages = []
-            for hit in hits:
-                doc = self.collection.find_one(filter={'page.url': hit['_source']['url']})
-                if doc:
-                    reshaped_pages.append(self.reshape_page(doc['page'], lang, search_snippet=hit['highlight']['text']))
-            return reshaped_pages
+            url_to_hit = {hit['_source']['url']: hit for hit in hits}
+            cur = self.collection.find(
+                filter={'$or': [{'page.url': hit['_source']['url']} for hit in hits]},
+                sort=self.get_sort()
+            )
+            return [self.reshape_page(d['page'], lang, url_to_hit[d['page']['url']]['highlight']['text']) for d in cur]
 
         index = 'covid19-pages-ja' if lang == 'ja' else 'covid19-pages-en'
 
