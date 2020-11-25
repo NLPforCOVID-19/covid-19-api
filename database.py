@@ -209,6 +209,8 @@ class DBHandler:
             }
 
         def convert_hits_to_pages(hits: list) -> list:
+            if len(hits) == 0:
+                return []
             url_to_hit = {hit['_source']['url']: hit for hit in hits}
             cur = self.collection.find(
                 filter={'$or': [{'page.url': hit['_source']['url']} for hit in hits]},
