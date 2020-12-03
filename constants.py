@@ -142,7 +142,7 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     'cn': ['cn'],
     'us': ['us', 'us_other'],
     'eur': ['eur', 'eu', 'fr', 'es', 'de', 'eur_other'],
-    'asia': ['asia', 'kr', 'in', 'np', 'my', 'asia_other'],
+    'asia': ['asia', 'kr', 'in', 'np', 'my', 'sg', 'asia_other'],
     'sa': ['sa', 'br', 'sa_other'],
     'oceania': ['au', 'oceania_other'],
     'africa': ['za', 'africa_other'],
