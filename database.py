@@ -216,7 +216,10 @@ class DBHandler:
                 filter={'$or': [{'page.url': hit['_source']['url']} for hit in hits]},
                 sort=self.get_sort()
             )
-            return [self.reshape_page(d['page'], lang, url_to_hit[d['page']['url']]['highlight']['text']) for d in cur]
+            return [
+                self.reshape_page(d['page'], lang, self.trim_snippet(url_to_hit[d['page']['url']]['highlight']['text']))
+                for d in cur
+            ]
 
         index = 'covid19-pages-ja' if lang == 'ja' else 'covid19-pages-en'
 
@@ -284,6 +287,16 @@ class DBHandler:
         del page['ja_domain_label']
         del page['en_domain_label']
         return page
+
+    @staticmethod
+    def trim_snippet(search_snippet):
+        if len(search_snippet) <= 70:
+            return search_snippet
+        else:
+            split = search_snippet.split('<em>')
+            prev_context, rest = split[0], '<em>'.join(split[1:])
+            prev_context = prev_context.split('、')[-1]
+            return f'{prev_context}<em>{rest}'
 
     def update_page(self,
                     url: str,
