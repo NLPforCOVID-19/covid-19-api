@@ -273,7 +273,7 @@ class DBHandler:
             page['topics'].append(
                 {
                     'name': 'Search',
-                    'snippet': search_snippet[0].replace('<em>', '').replace('</em>', ''),
+                    'snippet': search_snippet[0],
                     'relatedness': -1.
                 }
             )
