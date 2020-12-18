@@ -1,8 +1,10 @@
 import json
+import random
 import logging
 from datetime import datetime
 from typing import List, Dict, Union
 
+import twitter
 from pymongo import MongoClient, DESCENDING
 from elasticsearch import Elasticsearch
 
@@ -11,6 +13,7 @@ from constants import (
     ITOPICS,
     ITOPIC_ETOPIC_MAP,
     ETOPIC_ITOPICS_MAP,
+    COUNTRIES,
     ECOUNTRY_ICOUNTRIES_MAP,
     ETOPIC_TRANS_MAP,
     ECOUNTRY_TRANS_MAP,
@@ -29,7 +32,7 @@ class DBHandler:
 
         self.es = Elasticsearch(f'{es_host}:{es_port}')
 
-    def upsert_page(self, document: dict) -> None:
+    def upsert_page(self, document: dict) -> Dict[str, str]:
         """Add a page to the database. If the page has already been registered, update the page."""
 
         def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
@@ -122,8 +125,27 @@ class DBHandler:
                 {'$set': {'page': document_}},
                 upsert=True
             )
+            return {}
         elif not existing_page:
             self.collection.insert_one({'page': document_})
+            if document_['is_useful']:
+                tweet_dict = {
+                    'title': document_['ja_translated']['title'],
+                    'country': '',
+                    'topic': '',
+                    'domain': document_['ja_domain_label']
+                }
+                for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                    for country_dict in COUNTRIES:
+                        if country_dict['country'] == ecountry:
+                            tweet_dict['country'] = country_dict['name']['ja']
+                            break
+                topic_sorted = sorted(document_['topics'].items(), key=lambda x: -x[1])
+                if topic_sorted:
+                    tweet_dict['topic'] = topic_sorted[0][0]
+                return tweet_dict
+        else:
+            return {}
 
     def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         if etopic == 'search':
@@ -363,12 +385,30 @@ def main():
         es_port=cfg['es']['port'],
     )
 
+    tweet_candidates = []
     # add pages to the database or update pages
     with open(cfg['database']['input_page_path'], mode='r', encoding='utf-8') as f:
         for line in f:
-            mongo.upsert_page(json.loads(line.strip()))
+            twitter_dict = mongo.upsert_page(json.loads(line.strip()))
+            if twitter_dict:
+                tweet_candidates.append(twitter_dict)
     num_docs = sum(1 for _ in mongo.collection.find())
     logger.log(20, f'Number of pages: {num_docs}')
+
+    # tweet useful page
+    auth = twitter.OAuth(consumer_key=cfg['twitter']['api_key'],
+                         consumer_secret=cfg['twitter']['api_secret_key'],
+                         token=cfg['twitter']['token'],
+                         token_secret=cfg['twitter']['secret_token'])
+    t = twitter.Twitter(auth=auth)
+    chosen_tweet_dict = random.choice(tweet_candidates)
+    if chosen_tweet_dict["topic"]:
+        text = f'{chosen_tweet_dict["title"]}（{chosen_tweet_dict["country"]}，' \
+               f'{chosen_tweet_dict["topic"]}のニュース，{chosen_tweet_dict["domain"]}）\n{cfg["webcite_url"]}'
+    else:
+        text = f'{chosen_tweet_dict["title"]}（{chosen_tweet_dict["country"]}のニュース，' \
+               f'{chosen_tweet_dict["domain"]}）\n{cfg["webcite_url"]}'
+    t.statuses.update(status=text)
 
     # add category-checked pages
     with open(cfg['database']['category_check_log_path'], mode='r') as f:

@@ -32,7 +32,14 @@ config = {
         'feedback_log_file': os.getenv('FB_LOG_FILE')
     },
     'source': os.getenv('SOURCE'),
-    'password': os.getenv('PASSWORD')
+    'password': os.getenv('PASSWORD'),
+    'webcite_url': os.getenv('WEBSITE_URL'),
+    'twitter': {
+        'api_key': os.getenv('TWITTER_API_KEY'),
+        'api_secret_key': os.getenv('TWITTER_API_SECRET_KEY'),
+        'token': os.getenv('TWITTER_TOKEN'),
+        'secret_token': os.getenv('TWITTER_SECRET_TOKEN'),
+    }
 }
 
 with open('config.json', 'w') as f:
