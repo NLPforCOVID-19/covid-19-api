@@ -15,6 +15,7 @@ from constants import (
     ETOPIC_ITOPICS_MAP,
     COUNTRIES,
     ECOUNTRY_ICOUNTRIES_MAP,
+    ICOUNTRY_ECOUNTRY_MAP,
     ETOPIC_TRANS_MAP,
     ECOUNTRY_TRANS_MAP,
     SCORE_THRESHOLD,
@@ -135,11 +136,11 @@ class DBHandler:
                     'topic': '',
                     'domain': document_['ja_domain_label']
                 }
-                for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                    for country_dict in COUNTRIES:
-                        if country_dict['country'] == ecountry:
-                            tweet_dict['country'] = country_dict['name']['ja']
-                            break
+                ecountry = ICOUNTRY_ECOUNTRY_MAP[document_['displayed_country']]
+                for country_dict in COUNTRIES:
+                    if ecountry == country_dict['country']:
+                        tweet_dict['country'] = country_dict['name']['ja']
+                        break
                 topic_sorted = sorted(document_['topics'].items(), key=lambda x: -x[1])
                 if topic_sorted:
                     tweet_dict['topic'] = topic_sorted[0][0]
@@ -396,19 +397,20 @@ def main():
     logger.log(20, f'Number of pages: {num_docs}')
 
     # tweet useful page
-    auth = twitter.OAuth(consumer_key=cfg['twitter']['api_key'],
-                         consumer_secret=cfg['twitter']['api_secret_key'],
-                         token=cfg['twitter']['token'],
-                         token_secret=cfg['twitter']['secret_token'])
-    t = twitter.Twitter(auth=auth)
-    chosen_tweet_dict = random.choice(tweet_candidates)
-    if chosen_tweet_dict["topic"]:
-        text = f'{chosen_tweet_dict["title"]}（{chosen_tweet_dict["country"]}，' \
-               f'{chosen_tweet_dict["topic"]}のニュース，{chosen_tweet_dict["domain"]}）\n{cfg["webcite_url"]}'
-    else:
-        text = f'{chosen_tweet_dict["title"]}（{chosen_tweet_dict["country"]}のニュース，' \
-               f'{chosen_tweet_dict["domain"]}）\n{cfg["webcite_url"]}'
-    t.statuses.update(status=text)
+    if tweet_candidates:
+        auth = twitter.OAuth(consumer_key=cfg['twitter']['api_key'],
+                             consumer_secret=cfg['twitter']['api_secret_key'],
+                             token=cfg['twitter']['token'],
+                             token_secret=cfg['twitter']['secret_token'])
+        t = twitter.Twitter(auth=auth)
+        chosen_tweet_dict = random.choice(tweet_candidates)
+        if chosen_tweet_dict["topic"]:
+            text = f'{chosen_tweet_dict["title"]}（{chosen_tweet_dict["country"]}，' \
+                   f'{chosen_tweet_dict["topic"]}のニュース，{chosen_tweet_dict["domain"]}）\n{cfg["webcite_url"]}'
+        else:
+            text = f'{chosen_tweet_dict["title"]}（{chosen_tweet_dict["country"]}のニュース，' \
+                   f'{chosen_tweet_dict["domain"]}）\n{cfg["webcite_url"]}'
+        t.statuses.update(status=text)
 
     # add category-checked pages
     with open(cfg['database']['category_check_log_path'], mode='r') as f:
