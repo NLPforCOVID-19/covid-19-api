@@ -10,6 +10,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
       - name: Install SSH key
         env:
           SSH_PRIVATE: ${{ secrets.SSH_PRIVATE }}
@@ -43,6 +44,7 @@ jobs:
           TWITTER_SECRET_TOKEN: ${{ secrets.TWITTER_SECRET_TOKEN }}
           WEBSITE_URL: ${{ secrets.WEBSITE_URL }}
         run: |
+          pip install python-dotenv
           python conf.py
       - name: Deploy to server
         env:

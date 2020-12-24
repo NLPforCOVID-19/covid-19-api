@@ -1,6 +1,10 @@
 import os
 import json
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 config = {
     'activator': os.getenv('ACTIVATOR'),
     'access_control_allow_origin': '*',
