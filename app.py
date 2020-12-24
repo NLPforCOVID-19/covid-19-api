@@ -1,90 +1,70 @@
-"""An API server for covid-19-ui."""
-import json
-import os
 from datetime import datetime
 
-import requests
-from mojimoji import han_to_zen
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from mojimoji import han_to_zen
 
-from util import load_config
-from database import DBHandler
 from constants import TOPICS, COUNTRIES
-
-here = os.path.dirname(os.path.abspath(__file__))
-cfg = load_config()
-
-app = Flask(__name__)
-CORS(app, origins=cfg['access_control_allow_origin'])
-
-mongo = DBHandler(
-    host=cfg['database']['host'],
-    port=cfg['database']['port'],
-    db_name=cfg['database']['db_name'],
-    collection_name=cfg['database']['collection_name'],
-    es_host=cfg['es']['host'],
-    es_port=cfg['es']['port'],
-)
+from handlers import DBHandler, MetaDataHandler, SlackHandler, LogHandler
+from util import load_config
 
 
-class InvalidUsage(Exception):
+class APIError(Exception):
+
+    status_code = None
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
+class InvalidUsage(APIError):
 
     status_code = 400
 
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
 
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
-
-
-class InvalidPassword(Exception):
+class InvalidPassword(APIError):
 
     status_code = 403
 
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
 
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
+cfg = load_config()
 
+meta_data_handler = MetaDataHandler()
+log_handler = LogHandler(**cfg['log_handler'])
+slack_handlers = [SlackHandler(**args) for args in cfg['slack_handlers']]
+db_handler = DBHandler(**cfg['db_handler'])
 
-@app.route('/')
-def index():
-    return 'it works'
+app = Flask(__name__)
+CORS(app, **cfg['cors'])
 
 
 def get_start() -> int:
-    start = request.args.get('start', '0')  # NOTE: set the default value as a string object.
+    start = request.args.get('start', '0')  # NOTE: set the default value as a string.
     if not start.isdecimal():
-        raise InvalidUsage('Parameter `start` must be an integer.')
+        raise InvalidUsage('Parameter \'start\' must be an integer.')
     return int(start)
 
 
 def get_limit() -> int:
-    limit = request.args.get('limit', '10')  # NOTE: set the default value as a string object.
+    limit = request.args.get('limit', '10')  # NOTE: set the default value as a string.
     if not limit.isdecimal():
-        raise InvalidUsage('Parameter `limit` must be an integer.')
+        raise InvalidUsage('Parameter \'limit\' must be an integer.')
     return int(limit)
 
 
 def get_lang() -> str:
     lang = request.args.get('lang', 'ja')
     if lang not in {'ja', 'en'}:
-        raise InvalidUsage('Allowed languages are `ja` and `en`.')
+        raise InvalidUsage('Allowed languages are \'ja\' and \'en.\'')
     return lang
 
 
@@ -96,14 +76,14 @@ def get_query() -> str:
 @app.route('/classes/<class_>')
 @app.route('/classes/<class_>/<country>')
 def classes(class_=None, country=None):
-    return jsonify(mongo.classes(class_, country, get_start(), get_limit(), get_lang(), get_query()))
+    return jsonify(db_handler.classes(class_, country, get_start(), get_limit(), get_lang(), get_query()))
 
 
 @app.route('/countries')
 @app.route('/countries/<country>')
 @app.route('/countries/<country>/<class_>')
 def countries(country=None, class_=None):
-    return jsonify(mongo.countries(country, class_, get_start(), get_limit(), get_lang()))
+    return jsonify(db_handler.countries(country, class_, get_start(), get_limit(), get_lang()))
 
 
 @app.route('/update', methods=['POST'])
@@ -111,9 +91,9 @@ def update():
     data = request.get_json()
 
     if data.get('password') != cfg['password']:
-        raise InvalidPassword('The password is not correct')
+        raise InvalidPassword('Invalid password')
 
-    return jsonify(mongo.update_page(
+    return jsonify(db_handler.update_page(
         url=data.get('url'),
         is_hidden=data.get('is_hidden'),
         is_about_covid_19=data.get('is_about_COVID-19'),
@@ -121,83 +101,39 @@ def update():
         is_about_false_rumor=data.get('is_about_false_rumor'),
         icountry=data.get('new_displayed_country'),
         etopics=data.get('new_classes'),
-        notes=han_to_zen(str(data.get('notes'))),
-        category_check_log_path=cfg['database']['category_check_log_path']
+        notes=han_to_zen(str(data.get('notes')))
     ))
 
 
 @app.route('/history', methods=['GET'])
 def history():
-    url = request.args.get('url')
-    with open(cfg['database']['category_check_log_path'], mode='r') as f:
-        for line in f.readlines()[::-1]:
-            if line.strip():
-                edited_info = json.loads(line.strip())
-                if edited_info.get('url', '') == url:
-                    edited_info['is_checked'] = 1
-                    return jsonify(edited_info)
-    return jsonify({'url': url, 'is_checked': 0})
+    return jsonify(log_handler.find_category_check_log(url=request.args.get('url')))
 
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
     data = request.get_json()
     feedback_content = data.get('content', '')
-
     if feedback_content == '':
-        return InvalidUsage('feedback content is empty')
-
+        raise InvalidUsage('Feedback content is empty.')
     if len(feedback_content) > 1000:
-        raise InvalidUsage('feedback content is too long')
-
-    # Send the feedback message to the slack channel.
-    for slack_app in cfg['feedback']['slack']:
-        _ = requests.post(
-            'https://slack.com/api/chat.postMessage',
-            data={
-                'token': slack_app['access_token'],
-                'channel': slack_app['channel'],
-                'text': feedback_content,
-            }
-        )
-
-    # Append the feedback message to the log file.
-    today = datetime.today()
-    with open(cfg['feedback']['feedback_log_file'], mode='a') as f:
-        f.write(f'{today}\t{feedback_content}\n')
-
-    # Successful response is empty.
+        raise InvalidUsage('Feedback content is too long.')
+    for slack_handler in slack_handlers:
+        slack_handler.post(feedback_content)
+    log_handler.extend_feedback_log([f'{datetime.today()}\t{feedback_content}'])
     return jsonify({})
 
 
 @app.route('/meta')
 def meta():
-    lang = get_lang()
-
-    def reshape_country(country):
-        return {
-            'country': country['country'],
-            'name': country['name'][lang],
-            'language': country['language'],
-            'representativeSiteUrl': country['representativeSiteUrl']
-        }
-
-    meta_info = {
-        'topics': [topic[lang] for topic in TOPICS],
-        'countries': [reshape_country(country) for country in COUNTRIES]
-    }
-
-    with open(os.path.join(here, 'data', 'stats.json')) as f:
-        stats_info = json.load(f)['stats']
-
-    with open(os.path.join(here, 'data', 'sources.json')) as f:
-        sources_info = json.load(f)
-
-    country_code_index_map = {country['country']: i for i, country in enumerate(meta_info['countries'])}
-    for country_code in stats_info:
-        meta_info['countries'][country_code_index_map[country_code]]['stats'] = stats_info[country_code]
-        meta_info['countries'][country_code_index_map[country_code]]['sources'] = sources_info[country_code]
-
+    meta_info = {'topics': TOPICS, 'countries': COUNTRIES}
+    stats = meta_data_handler.read_stats()
+    stats = stats['stats']
+    sources = meta_data_handler.read_sources()
+    country_code_index_map = {country['code']: i for i, country in enumerate(meta_info['countries'])}
+    for country_code in stats:
+        meta_info['countries'][country_code_index_map[country_code]]['stats'] = stats[country_code]
+        meta_info['countries'][country_code_index_map[country_code]]['sources'] = sources[country_code]
     return jsonify(meta_info)
 
 
