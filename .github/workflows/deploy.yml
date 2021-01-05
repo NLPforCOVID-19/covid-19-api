@@ -43,6 +43,7 @@ jobs:
           TWITTER_SECRET_TOKEN: ${{ secrets.TWITTER_SECRET_TOKEN }}
           WEBSITE_URL: ${{ secrets.WEBSITE_URL }}
         run: |
+          pip install python-dotenv
           python conf.py
       - name: Deploy to server
         env:
