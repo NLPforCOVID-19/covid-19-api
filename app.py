@@ -1,4 +1,5 @@
 """An API server for covid-19-ui."""
+import json
 from datetime import datetime
 
 from flask import Flask, request, jsonify
@@ -106,7 +107,7 @@ def update():
         raise InvalidPassword('The password is not correct')
 
     db_handler = DBHandler(**cfg['db_handler'])
-    return jsonify(db_handler.update_page(
+    updated = jsonify(db_handler.update_page(
         url=data.get('url'),
         is_hidden=data.get('is_hidden'),
         is_about_covid_19=data.get('is_about_COVID-19'),
@@ -116,6 +117,11 @@ def update():
         etopics=data.get('new_classes'),
         notes=han_to_zen(str(data.get('notes'))),
     ))
+
+    log_handler = LogHandler(**cfg['log_handler'])
+    log_handler.extend_topic_check_log([json.dumps(updated, ensure_ascii=False)])
+
+    return updated
 
 
 @app.route('/history', methods=['GET'])
