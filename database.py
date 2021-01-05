@@ -290,7 +290,7 @@ class DBHandler:
                 'snippet': page[f'{lang}_snippets'][itopic],
                 'relatedness': page['topics'][itopic]
             }
-            for itopic in page['topics']
+            for itopic in page['topics'] if itopic in ITOPICS
         ]
         if search_snippet:
             page['topics'].append(
