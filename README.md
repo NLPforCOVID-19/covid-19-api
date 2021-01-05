@@ -125,7 +125,7 @@ One `<article-information>` is like:
 }
 ```
 
-### [GET] /classes/<class_>
+### [GET] /classes/\<class_\>
 
 `<class_>` must be an item in the topics in the meta-data.
 
@@ -150,7 +150,7 @@ One `<article-information>` is like:
 }
 ```
 
-### [GET] /classes/<class_>/<country>
+### [GET] /classes/\<class_\>/\<country\>
 
 `<country>` must be an item in the countries in the meta-data.
 
@@ -170,8 +170,8 @@ One `<article-information>` is like:
 ```
 
 ### [GET] /countries
-### [GET] /countries/<country>
-### [GET] /countries/<country><class_>
+### [GET] /countries/\<country\>
+### [GET] /countries/\<country\>\<class_\>
 
 ## Developer Guides
 
