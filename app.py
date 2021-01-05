@@ -119,7 +119,7 @@ def update():
     ))
 
     log_handler = LogHandler(**cfg['log_handler'])
-    log_handler.extend_topic_check_log([json.dumps(updated, ensure_ascii=False)])
+    log_handler.extend_topic_check_log([json.dumps(updated, ensure_ascii=False, default=str)])
 
     return updated
 
