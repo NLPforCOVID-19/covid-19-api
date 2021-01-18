@@ -14,7 +14,7 @@ class TwitterHandler:
     def post(self, text: str) -> None:
         auth = twitter.OAuth(self.token, self.token_secret, self.consumer_key, self.consumer_secret)
         t = twitter.Twitter(auth=auth)
-        t.statuses.update(text)
+        t.statuses.update(status=text)
 
     @staticmethod
     def create_text(d: dict) -> str:
