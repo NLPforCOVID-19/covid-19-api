@@ -33,7 +33,7 @@ def update_database(do_tweet: bool = False):
     with open(data_path, mode='r', encoding='utf-8') as f:
         for line in f:
             d = db_handler.upsert_page(json.loads(line))
-            if do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
+            if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
                 maybe_tweeted_ds.append(d)
     num_docs = db_handler.collection.count_documents({})
     log_handler.extend_page_number_log([f'{time.asctime()}:The number of pages is {num_docs}.'])
