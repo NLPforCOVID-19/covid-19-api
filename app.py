@@ -13,7 +13,7 @@ from slack_handler import SlackHandler
 from util import load_config
 
 
-class InvalidUsage(Exception):
+class InvalidUsage(Exception) :
 
     status_code = 400
 
