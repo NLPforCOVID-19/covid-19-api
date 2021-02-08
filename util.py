@@ -12,12 +12,12 @@ TOPICS = [
         'en': 'Current state of infection'
     },
     {
-        'ja': '予防・防疫・緩和',
-        'en': 'Prevention and mitigation measures'
+        'ja': '予防・防疫・規制',
+        'en': 'Prevention and regulation'
     },
     {
-        'ja': '症状・治療・検査など医療情報',
-        'en': 'Symptoms, treatments, and medical information'
+        'ja': '症状・治療・ワクチンなど医療情報',
+        'en': 'Medical info such as symptoms, treatments, and vaccines'
     },
     {
         'ja': '経済・福祉政策',
