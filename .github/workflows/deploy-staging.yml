@@ -48,4 +48,4 @@ jobs:
           REMOTE: ${{ secrets.REMOTE }}
         run: |
           chmod -R g+w .
-          rsync -av . $REMOTE:$DEPLOY_PATH
+          rsync -av --exclude 'data/' . $REMOTE:$DEPLOY_PATH
