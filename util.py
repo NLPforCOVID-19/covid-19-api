@@ -12,12 +12,12 @@ TOPICS = [
         'en': 'Current state of infection'
     },
     {
-        'ja': '予防・防疫・緩和',
-        'en': 'Prevention and mitigation measures'
+        'ja': '予防・防疫・規制',
+        'en': 'Prevention and regulation'
     },
     {
-        'ja': '症状・治療・検査など医療情報',
-        'en': 'Symptoms, treatments, and medical information'
+        'ja': '症状・治療・ワクチンなど医療情報',
+        'en': 'Medical info such as symptoms, treatments, and vaccines'
     },
     {
         'ja': '経済・福祉政策',
@@ -73,7 +73,7 @@ COUNTRIES = [
         "dataRepository": ["Belgium", "Bulgaria", "Czechia", "Denmark", "Germany", "Estonia", "Ireland", "Greece",
                            "Spain", "France", "Croatia", "Italy", "Cyprus", "Latvia", "Lithuania", "Luxembourg",
                            "Hungary", "Malta", "Netherlands", "Austria", "Poland", "Portugal", "Romania", "Slovenia",
-                           "Slovakia", "Finland", "Sweden"],
+                           "Slovakia", "Finland", "Sweden", "United Kingdom"],
         "language": "en",
         "representativeSiteUrl": "https://www.ecdc.europa.eu/en/covid-19-pandemic"
     },
@@ -147,7 +147,7 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     'jp': ['jp'],
     'cn': ['cn'],
     'us': ['us', 'us_other'],
-    'eur': ['eur', 'eu', 'fr', 'es', 'de', 'eur_other'],
+    'eur': ['eur', 'eu', 'fr', 'gb', 'es', 'de', 'eur_other'],
     'asia': ['asia', 'kr', 'in', 'np', 'my', 'sg', 'asia_other'],
     'sa': ['sa', 'br', 'sa_other'],
     'oceania': ['au', 'oceania_other'],
@@ -172,8 +172,8 @@ ECOUNTRY_ICOUNTRIES_MAP['all'] = ICOUNTRIES
 # external topic -> internal topics
 ETOPIC_ITOPICS_MAP = {
     '感染状況': ['感染状況'],
-    '予防・防疫・緩和': ['予防・緊急事態宣言'],
-    '症状・治療・検査など医療情報': ['症状・治療・検査など医療情報'],
+    '予防・防疫・規制': ['予防・緊急事態宣言'],
+    '症状・治療・ワクチンなど医療情報': ['症状・治療・検査など医療情報'],
     '経済・福祉政策': ['経済・福祉政策'],
     '教育関連': ['休校・オンライン授業'],
     'その他': ['その他', '芸能・スポーツ']
