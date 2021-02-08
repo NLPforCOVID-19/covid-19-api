@@ -1,5 +1,4 @@
 #!/mnt/orange/brew/data/bin/python3
-import os
 from util import load_config
 
 cfg = load_config()

@@ -24,20 +24,25 @@ jobs:
       - name: Configure
         env:
           ACTIVATOR: ${{ secrets.ACTIVATOR }}
-          DB_COLLECTION_NAME: ${{ secrets.DB_COLLECTION_NAME }}
-          DB_DB_NAME: ${{ secrets.DB_DB_NAME }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          ES_HOST: ${{ secrets.ES_HOST }}
-          ES_PORT: ${{ secrets.ES_PORT }}
-          FB_LOG_FILE: ${{ secrets.FB_LOG_FILE }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          SLACK_ACCESS_TOKENS: ${{ secrets.SLACK_ACCESS_TOKENS }}
-          SLACK_APP_CHANNELS: ${{ secrets.SLACK_APP_CHANNELS }}
-          DB_CATEGORY_CHECK_LOG_PATH: ${{ secrets.DB_CATEGORY_CHECK_LOG_PATH }}
-          DB_UPDATE_LOG_PATH: ${{ secrets.DB_UPDATE_LOG_PATH }}
-          SOURCE: ${{ secrets.SOURCE }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          LOG_HANDLER_LOG_DIR: ${{ secrets.LOG_HANDLER_LOG_DIR }}
+          DB_HANDLER_MONGO_HOST: ${{ secrets.DB_HANDLER_MONGO_HOST }}
+          DB_HANDLER_MONGO_PORT: ${{ secrets.DB_HANDLER_MONGO_PORT }}
+          DB_HANDLER_MONGO_DB_NAME: ${{ secrets.DB_HANDLER_MONGO_DB_NAME }}
+          DB_HANDLER_MONGO_COLLECTION_NAME: ${{ secrets.DB_HANDLER_MONGO_COLLECTION_NAME }}
+          DB_HANDLER_ES_HOST: ${{ secrets.DB_HANDLER_ES_HOST }}
+          DB_HANDLER_ES_PORT: ${{ secrets.DB_HANDLER_ES_PORT }}
+          TWITTER_HANDLER_OAUTH_TOKEN: ${{ secrets.TWITTER_HANDLER_OAUTH_TOKEN }}
+          TWITTER_HANDLER_OAUTH_TOKEN_SECRET: ${{ secrets.TWITTER_HANDLER_OAUTH_TOKEN_SECRET }}
+          TWITTER_HANDLER_OAUTH_CONSUMER_KEY: ${{ secrets.TWITTER_HANDLER_OAUTH_CONSUMER_KEY }}
+          TWITTER_HANDLER_OAUTH_CONSUMER_SECRET: ${{ secrets.TWITTER_HANDLER_OAUTH_CONSUMER_SECRET }}
+          SLACK_HANDLER_ACCESS_TOKENS: ${{ secrets.SLACK_HANDLER_ACCESS_TOKENS }}
+          SLACK_HANDLER_APP_CHANNELS: ${{ secrets.SLACK_HANDLER_APP_CHANNELS }}
+          ARTICLE_LIST: ${{ secrets.ARTICLE_LIST }}
+          SITE_LIST: ${{ secrets.SITE_LIST }}
         run: |
+          pip install python-dotenv
           python conf.py
       - name: Deploy to server
         env:

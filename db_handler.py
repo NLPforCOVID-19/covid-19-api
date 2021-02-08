@@ -1,13 +1,11 @@
-import json
-import logging
 from datetime import datetime
-from typing import List, Dict, Union
+from enum import Enum
+from typing import List, Dict, Union, Optional
 
-from pymongo import MongoClient, DESCENDING
 from elasticsearch import Elasticsearch
+from pymongo import MongoClient, DESCENDING
 
-from util import load_config
-from constants import (
+from util import (
     ITOPICS,
     ITOPIC_ETOPIC_MAP,
     ETOPIC_ITOPICS_MAP,
@@ -20,17 +18,36 @@ from constants import (
 )
 
 
+class Status(Enum):
+    UPDATED = 0
+    INSERTED = 1
+    IGNORED = 2
+
+
 class DBHandler:
 
-    def __init__(self, host: str, port: int, db_name: str, collection_name: str, es_host: str, es_port: int):
-        self.client = MongoClient(host, port)
-        self.db = self.client[db_name]
-        self.collection = self.db.get_collection(name=collection_name)
-
+    def __init__(
+            self,
+            mongo_host: str,
+            mongo_port: int,
+            mongo_db_name: str,
+            mongo_collection_name: str,
+            es_host: str,
+            es_port: int,
+    ):
+        self.mongo = MongoClient(mongo_host, mongo_port)
+        self.db = self.mongo.get_database(mongo_db_name)
+        self.collection = self.db.get_collection(name=mongo_collection_name)
         self.es = Elasticsearch(f'{es_host}:{es_port}')
 
-    def upsert_page(self, document: dict) -> None:
+    def upsert_page(self, document: dict) -> Optional[Dict[str, str]]:
         """Add a page to the database. If the page has already been registered, update the page."""
+        if any((
+                not document['orig']['title'],
+                not document['ja_translated']['title'],
+                not document['en_translated']['title'],
+        )):
+            return
 
         def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
             # Find a general snippet.
@@ -54,27 +71,21 @@ class DBHandler:
 
         is_about_covid_19: int = document['classes']['is_about_COVID-19']
         country: str = document['country']
-        if not document['orig']['title']:
-            return
-        orig = {
-            'title': document['orig']['title'].strip(),  # type: str
-            'timestamp': document['orig']['timestamp'],  # type: str
-            'simple_timestamp': datetime.fromisoformat(document['orig']['timestamp']).date().isoformat(),  # type: str
+        orig: Dict[str, str] = {
+            'title': document['orig']['title'].strip(),
+            'timestamp': document['orig']['timestamp'],
+            'simple_timestamp': datetime.fromisoformat(document['orig']['timestamp']).date().isoformat(),
         }
-        if not document['ja_translated']['title']:
-            return
-        ja_translated = {
-            'title': document['ja_translated']['title'].strip(),  # type: str
-            'timestamp': document['ja_translated']['timestamp'],  # type: str
+        ja_translated: Dict[str, str] = {
+            'title': document['ja_translated']['title'].strip(),
+            'timestamp': document['ja_translated']['timestamp'],
         }
-        if not document['en_translated']['title']:
-            return
-        en_translated = {
-            'title': document['en_translated']['title'].strip(),  # type: str
-            'timestamp': document['en_translated']['timestamp'],  # type: str
+        en_translated: Dict[str, str] = {
+            'title': document['en_translated']['title'].strip(),
+            'timestamp': document['en_translated']['timestamp'],
         }
         url: str = document['url']
-        topics_to_score = {
+        topics_to_score: Dict[str, float] = {
             key: value for key, value in document['classes_bert'].items() if key in ITOPICS and value > 0.5
         }
         topics: Dict[str, float] = dict()
@@ -117,13 +128,14 @@ class DBHandler:
 
         existing_page = self.collection.find_one({'page.url': url})
         if existing_page and orig['timestamp'] > existing_page['page']['orig']['timestamp']:
-            self.collection.update_one(
-                {'page.url': url},
-                {'$set': {'page': document_}},
-                upsert=True
-            )
+            self.collection.update_one({'page.url': url}, {'$set': {'page': document_}}, upsert=True)
+            document_['status'] = Status.UPDATED
         elif not existing_page:
             self.collection.insert_one({'page': document_})
+            document_['status'] = Status.INSERTED
+        else:
+            document_['status'] = Status.IGNORED
+        return document_
 
     def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         if etopic == 'search':
@@ -188,8 +200,23 @@ class DBHandler:
                 'query': {
                     'bool': {
                         'must': [
-                            {'bool': {'should': [{'term': {'region': region}} for region in regions]}},
-                            {'match': {'text': query}},
+                            {
+                                'bool': {
+                                    'should': [
+                                        {
+                                            'term': {
+                                                'region': region
+                                            }
+                                        }
+                                        for region in regions
+                                    ]
+                                }
+                            },
+                            {
+                                'match': {
+                                    'text': query
+                                }
+                            },
                         ],
                     }
                 },
@@ -201,7 +228,9 @@ class DBHandler:
                 'sort': [{
                     'timestamp.local': {
                         'order': 'desc',
-                        'nested': {'path': 'timestamp'}
+                        'nested': {
+                            'path': 'timestamp'
+                        }
                     }
                 }],
                 'from': start,
@@ -245,7 +274,7 @@ class DBHandler:
 
     @staticmethod
     def get_filter(itopics: List[str] = None, icountries: List[str] = None) -> Dict[str, List]:
-        filters = [{"$and": [{"page.is_about_COVID-19": 1}, {"page.is_hidden": 0}]}]
+        filters = [{'$and': [{'page.is_about_COVID-19': 1}, {'page.is_hidden': 0}]}]
         if itopics:
             filters += [{'$or': [{f'page.topics.{itopic}': {'$exists': True}} for itopic in itopics]}]
         if icountries:
@@ -267,7 +296,7 @@ class DBHandler:
                 'snippet': page[f'{lang}_snippets'][itopic],
                 'relatedness': page['topics'][itopic]
             }
-            for itopic in page['topics']
+            for itopic in page['topics'] if itopic in ITOPICS
         ]
         if search_snippet:
             page['topics'].append(
@@ -298,16 +327,17 @@ class DBHandler:
             prev_context = prev_context.split('、')[-1]
             return f'{prev_context}<em>{rest}'
 
-    def update_page(self,
-                    url: str,
-                    is_hidden: bool,
-                    is_about_covid_19: bool,
-                    is_useful: bool,
-                    is_about_false_rumor: bool,
-                    icountry: str,
-                    etopics: List[str],
-                    notes: str,
-                    category_check_log_path: str) -> Dict[str, Union[int, str, List[str]]]:
+    def update_page(
+            self,
+            url: str,
+            is_hidden: bool,
+            is_about_covid_19: bool,
+            is_useful: bool,
+            is_about_false_rumor: bool,
+            icountry: str,
+            etopics: List[str],
+            notes: str
+    ) -> Dict[str, Union[int, str, List[str]]]:
         new_is_hidden = 1 if is_hidden else 0
         new_is_about_covid_19 = 1 if is_about_covid_19 else 0
         new_is_useful = 1 if is_useful else 0
@@ -327,7 +357,7 @@ class DBHandler:
             }},
             upsert=True
         )
-        updated = {
+        return {
             'url': url,
             'is_hidden': new_is_hidden,
             'is_about_COVID-19': new_is_about_covid_19,
@@ -338,61 +368,3 @@ class DBHandler:
             'notes': notes,
             'time': datetime.now().isoformat()
         }
-        with open(category_check_log_path, mode='a') as f:
-            json.dump(updated, f, ensure_ascii=False)
-            f.write('\n')
-        return updated
-
-
-def main():
-    cfg = load_config()
-
-    logger = logging.getLogger(__file__)
-    logger.setLevel(20)
-    fh = logging.FileHandler(cfg['database']['log_path'], mode='a')
-    logger.addHandler(fh)
-    formatter = logging.Formatter('%(asctime)s:%(lineno)d:%(levelname)s:%(message)s')
-    fh.setFormatter(formatter)
-
-    mongo = DBHandler(
-        host=cfg['database']['host'],
-        port=cfg['database']['port'],
-        db_name=cfg['database']['db_name'],
-        collection_name=cfg['database']['collection_name'],
-        es_host=cfg['es']['host'],
-        es_port=cfg['es']['port'],
-    )
-
-    # add pages to the database or update pages
-    with open(cfg['database']['input_page_path'], mode='r', encoding='utf-8') as f:
-        for line in f:
-            mongo.upsert_page(json.loads(line.strip()))
-    num_docs = sum(1 for _ in mongo.collection.find())
-    logger.log(20, f'Number of pages: {num_docs}')
-
-    # add category-checked pages
-    with open(cfg['database']['category_check_log_path'], mode='r') as f:
-        for line in f:
-            if not line.strip():
-                continue
-            category_checked_page = json.loads(line.strip())
-            existing_page = mongo.collection.find_one({'page.url': category_checked_page['url']})
-            if not existing_page:
-                continue
-
-            mongo.collection.update_one(
-                {'page.url': category_checked_page['url']},
-                {'$set': {
-                    'page.is_about_COVID-19': category_checked_page['is_about_COVID-19'],
-                    'page.is_useful': category_checked_page['is_useful'],
-                    'page.is_about_false_rumor': category_checked_page.get('is_about_false_rumor', 0),
-                    'page.is_checked': 1,
-                    'page.is_hidden': category_checked_page.get('is_hidden', 0),
-                    'page.displayed_country': category_checked_page['new_country'],
-                    'page.topics': {new_topic: 1.0 for new_topic in category_checked_page['new_topics']}
-                }},
-            )
-
-
-if __name__ == '__main__':
-    main()
