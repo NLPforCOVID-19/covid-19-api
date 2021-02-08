@@ -73,7 +73,7 @@ COUNTRIES = [
         "dataRepository": ["Belgium", "Bulgaria", "Czechia", "Denmark", "Germany", "Estonia", "Ireland", "Greece",
                            "Spain", "France", "Croatia", "Italy", "Cyprus", "Latvia", "Lithuania", "Luxembourg",
                            "Hungary", "Malta", "Netherlands", "Austria", "Poland", "Portugal", "Romania", "Slovenia",
-                           "Slovakia", "Finland", "Sweden"],
+                           "Slovakia", "Finland", "Sweden", "United Kingdom"],
         "language": "en",
         "representativeSiteUrl": "https://www.ecdc.europa.eu/en/covid-19-pandemic"
     },
@@ -147,7 +147,7 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     'jp': ['jp'],
     'cn': ['cn'],
     'us': ['us', 'us_other'],
-    'eur': ['eur', 'eu', 'fr', 'es', 'de', 'eur_other'],
+    'eur': ['eur', 'eu', 'fr', 'gb', 'es', 'de', 'eur_other'],
     'asia': ['asia', 'kr', 'in', 'np', 'my', 'sg', 'asia_other'],
     'sa': ['sa', 'br', 'sa_other'],
     'oceania': ['au', 'oceania_other'],
