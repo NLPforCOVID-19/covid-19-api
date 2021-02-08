@@ -1,9 +1,11 @@
 import os
 import json
 
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ModuleNotFoundError:
+    pass
 
 config = {
     'activator': os.getenv('ACTIVATOR'),
