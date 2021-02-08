@@ -1,0 +1,47 @@
+name: Deploy to staging
+on:
+  push:
+    branches: [ staging ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install SSH key
+        env:
+          SSH_PRIVATE: ${{ secrets.SSH_PRIVATE }}
+          SSH_CONFIG: ${{ secrets.SSH_CONFIG }}
+          KNOWN_HOSTS: ${{ secrets.KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "$SSH_CONFIG" > ~/.ssh/config
+          echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Configure
+        env:
+          ACTIVATOR: ${{ secrets.ACTIVATOR }}
+          DB_COLLECTION_NAME: ${{ secrets.DB_COLLECTION_NAME }}
+          DB_DB_NAME: ${{ secrets.DB_DB_NAME }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          ES_HOST: ${{ secrets.ES_HOST }}
+          ES_PORT: ${{ secrets.ES_PORT }}
+          FB_LOG_FILE: ${{ secrets.FB_LOG_FILE }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          SLACK_ACCESS_TOKENS: ${{ secrets.SLACK_ACCESS_TOKENS }}
+          SLACK_APP_CHANNELS: ${{ secrets.SLACK_APP_CHANNELS }}
+          DB_CATEGORY_CHECK_LOG_PATH: ${{ secrets.DB_CATEGORY_CHECK_LOG_PATH }}
+          DB_UPDATE_LOG_PATH: ${{ secrets.DB_UPDATE_LOG_PATH }}
+          SOURCE: ${{ secrets.SOURCE }}
+        run: |
+          python conf.py
+      - name: Deploy to server
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_STAGING }}
+          REMOTE: ${{ secrets.REMOTE }}
+        run: |
+          chmod -R g+w .
+          rsync -av . $REMOTE:$DEPLOY_PATH
