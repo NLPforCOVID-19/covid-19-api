@@ -40,8 +40,8 @@ jobs:
           python conf.py
       - name: Deploy to server
         env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH_STAGING }}
           REMOTE: ${{ secrets.REMOTE }}
         run: |
           chmod -R g+w .
-          rsync -av --exclude 'data/' . $REMOTE:$DEPLOY_PATH
+          rsync -av . $REMOTE:$DEPLOY_PATH
