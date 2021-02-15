@@ -49,6 +49,11 @@ class InvalidPassword(Exception):
 
 cfg = load_config()
 
+meta_data_handler = MetaDataHandler()
+db_handler = DBHandler(**cfg['db_handler'])
+log_handler = LogHandler(**cfg['log_handler'])
+slack_handlers = [SlackHandler(**args) for args in cfg['slack_handlers']]
+
 app = Flask(__name__)
 CORS(app, **cfg['cors'])
 
@@ -83,20 +88,17 @@ def get_query() -> str:
     return request.args.get('query', '')
 
 
-@app.route('/classes')
-@app.route('/classes/<class_>')
-@app.route('/classes/<class_>/<country>')
-def classes(class_=None, country=None):
-    db_handler = DBHandler(**cfg['db_handler'])
-    return jsonify(db_handler.classes(class_, country, get_start(), get_limit(), get_lang(), get_query()))
+@app.route('/articles')
+@app.route('/articles/<class_>')
+@app.route('/articles/<class_>/<country>')
+def articles(class_=None, country=None):
+    return jsonify(db_handler.articles(class_, country, get_start(), get_limit(), get_lang(), get_query()))
 
 
-@app.route('/countries')
-@app.route('/countries/<country>')
-@app.route('/countries/<country>/<class_>')
-def countries(country=None, class_=None):
-    db_handler = DBHandler(**cfg['db_handler'])
-    return jsonify(db_handler.countries(country, class_, get_start(), get_limit(), get_lang()))
+@app.route('/tweets')
+@app.route('/tweets/<country>')
+def tweets(country=None):
+    return jsonify(db_handler.tweets(country, get_start(), get_limit(), get_lang(), get_query()))
 
 
 @app.route('/update', methods=['POST'])
@@ -106,7 +108,6 @@ def update():
     if data.get('password') != cfg['password']:
         raise InvalidPassword('The password is not correct')
 
-    db_handler = DBHandler(**cfg['db_handler'])
     updated = db_handler.update_page(
         url=data.get('url'),
         is_hidden=data.get('is_hidden'),
@@ -118,7 +119,6 @@ def update():
         notes=han_to_zen(str(data.get('notes'))),
     )
 
-    log_handler = LogHandler(**cfg['log_handler'])
     log_handler.extend_topic_check_log([json.dumps(updated, ensure_ascii=False)])
 
     return jsonify(updated)
@@ -126,7 +126,6 @@ def update():
 
 @app.route('/history', methods=['GET'])
 def history():
-    log_handler = LogHandler(**cfg['log_handler'])
     return jsonify(log_handler.find_topic_check_log(url=request.args.get('url')))
 
 
@@ -139,11 +138,9 @@ def feedback():
     if len(feedback_content) > 1000:
         raise InvalidUsage('Feedback content is too long.')
 
-    slack_handlers = [SlackHandler(**args) for args in cfg['slack_handlers']]
     for slack_handler in slack_handlers:
         slack_handler.post(feedback_content)
 
-    log_handler = LogHandler(**cfg['log_handler'])
     log_handler.extend_feedback_log([f'{datetime.today()}\t{feedback_content}'])
 
     return jsonify({})
@@ -151,7 +148,6 @@ def feedback():
 
 @app.route('/meta')
 def meta():
-    meta_data_handler = MetaDataHandler()
     return jsonify(meta_data_handler.get(get_lang()))
 
 

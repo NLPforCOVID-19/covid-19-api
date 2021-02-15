@@ -22,11 +22,13 @@ logging.basicConfig(level='DEBUG')
 
 cfg = load_config()
 
+meta_data_handler = MetaDataHandler()
+db_handler = DBHandler(**cfg['db_handler'])
+log_handler = LogHandler(**cfg['log_handler'])
+twitter_handler = TwitterHandler(**cfg['twitter_handler'])
+
 
 def update_database(do_tweet: bool = False):
-    db_handler = DBHandler(**cfg['db_handler'])
-    log_handler = LogHandler(**cfg['log_handler'])
-
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
     maybe_tweeted_ds = []
@@ -59,7 +61,6 @@ def update_database(do_tweet: bool = False):
 
     logger.debug('Tweet a useful new page.')
     if do_tweet:
-        twitter_handler = TwitterHandler(**cfg['twitter_handler'])
         if not maybe_tweeted_ds:
             logger.debug('No such pages. Skip to tweet a page.')
             return
@@ -69,9 +70,6 @@ def update_database(do_tweet: bool = False):
 
 
 def update_stats():
-    meta_data_handler = MetaDataHandler()
-    log_handler = LogHandler(**cfg['log_handler'])
-
     logger.debug('Update stats.')
     base = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data' \
            '/csse_covid_19_time_series/ '
@@ -116,9 +114,6 @@ def update_stats():
 
 
 def update_sources():
-    meta_data_handler = MetaDataHandler()
-    log_handler = LogHandler(**cfg['log_handler'])
-
     logger.debug('Update sources.')
     data_path = cfg['data']['site_list']
     with open(data_path) as f:

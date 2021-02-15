@@ -137,7 +137,7 @@ class DBHandler:
             document_['status'] = Status.IGNORED
         return document_
 
-    def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
+    def articles(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         if etopic == 'search':
             return self.search(ecountry, start, limit, lang, query)
 
@@ -145,11 +145,15 @@ class DBHandler:
         ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
 
         if etopic and ecountry:
-            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
-            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+            if etopic not in ETOPIC_ITOPICS_MAP or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+                return []
+            itopics = ETOPIC_ITOPICS_MAP[etopic]
+            icountries = ECOUNTRY_ICOUNTRIES_MAP[ecountry]
             reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
         elif etopic:
-            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+            if etopic not in ETOPIC_ITOPICS_MAP:
+                return {ecountry: [] for ecountry in ECOUNTRY_ICOUNTRIES_MAP.keys()}
+            itopics = ETOPIC_ITOPICS_MAP[etopic]
             reshaped_pages = {}
             for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                 if ecountry == 'all':
@@ -167,32 +171,33 @@ class DBHandler:
                     reshaped_pages[etopic][ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
         return reshaped_pages
 
-    def countries(self, ecountry: str, etopic: str, start: int, limit: int, lang: str):
-        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
-        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
-
-        if ecountry and etopic:
-            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
-            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
-            reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
-        elif ecountry:
-            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
-            reshaped_pages = {}
-            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                if etopic == 'all':
-                    continue
-                reshaped_pages[etopic] = self.get_pages(itopics, icountries, start, limit, lang)
+    def tweets(self, ecountry: str, start: int, limit: int, lang: str, query: str):
+        if ecountry:
+            return [
+                {
+                    'id': '1357006259413635076',
+                    'name': "nlpforcovid-19",
+                    'verified': True,
+                    'username': "nlpforcovid",
+                    'avatar': "https://pbs.twimg.com/profile_images/1347024085952331778/3oBHXOOn_bigger.jpg",
+                    'contentOrig': "欧州がより多くのワクチンを求めている（ヨーロッパ，経済・福祉政策のニュース，France 24",
+                    'contentTrans': None,
+                    'timestamp': "2021-02-10 14:45:03"
+                },
+            ]
         else:
-            reshaped_pages = {}
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                reshaped_pages[ecountry] = {}
-                for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                    if etopic == 'all':
-                        continue
-                    reshaped_pages[ecountry][etopic] = self.get_pages(itopics, icountries, start, limit, lang)
-        return reshaped_pages
+            return {
+                ecountry: {
+                    'id': '1357006259413635076',
+                    'name': "nlpforcovid-19",
+                    'verified': True,
+                    'username': "nlpforcovid",
+                    'avatar': "https://pbs.twimg.com/profile_images/1347024085952331778/3oBHXOOn_bigger.jpg",
+                    'contentOrig': "欧州がより多くのワクチンを求めている（ヨーロッパ，経済・福祉政策のニュース，France 24",
+                    'contentTrans': None,
+                    'timestamp': "2021-02-10 14:45:03"
+                } for ecountry in ECOUNTRY_ICOUNTRIES_MAP.keys()
+            }
 
     def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         def get_es_query(regions: List[str]):
