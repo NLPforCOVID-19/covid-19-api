@@ -91,7 +91,7 @@ def get_query() -> str:
 @app.route('/articles')
 @app.route('/articles/<class_>')
 @app.route('/articles/<class_>/<country>')
-def classes(class_=None, country=None):
+def articles(class_=None, country=None):
     return jsonify(db_handler.articles(class_, country, get_start(), get_limit(), get_lang(), get_query()))
 
 

@@ -145,11 +145,15 @@ class DBHandler:
         ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
 
         if etopic and ecountry:
-            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
-            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+            if etopic not in ETOPIC_ITOPICS_MAP or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+                return []
+            itopics = ETOPIC_ITOPICS_MAP[etopic]
+            icountries = ECOUNTRY_ICOUNTRIES_MAP[ecountry]
             reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
         elif etopic:
-            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+            if etopic not in ETOPIC_ITOPICS_MAP:
+                return {ecountry: [] for ecountry in ECOUNTRY_ICOUNTRIES_MAP.keys()}
+            itopics = ETOPIC_ITOPICS_MAP[etopic]
             reshaped_pages = {}
             for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
                 if ecountry == 'all':
