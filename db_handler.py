@@ -137,7 +137,7 @@ class DBHandler:
             document_['status'] = Status.IGNORED
         return document_
 
-    def classes(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
+    def articles(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         if etopic == 'search':
             return self.search(ecountry, start, limit, lang, query)
 
@@ -167,32 +167,12 @@ class DBHandler:
                     reshaped_pages[etopic][ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
         return reshaped_pages
 
-    def countries(self, ecountry: str, etopic: str, start: int, limit: int, lang: str):
-        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
-        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
-
-        if ecountry and etopic:
-            itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+    def tweets(self, ecountry: str, start: int, limit: int, lang: str):
+        if ecountry:
             icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
-            reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
-        elif ecountry:
-            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
-            reshaped_pages = {}
-            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                if etopic == 'all':
-                    continue
-                reshaped_pages[etopic] = self.get_pages(itopics, icountries, start, limit, lang)
+            return []
         else:
-            reshaped_pages = {}
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                reshaped_pages[ecountry] = {}
-                for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                    if etopic == 'all':
-                        continue
-                    reshaped_pages[ecountry][etopic] = self.get_pages(itopics, icountries, start, limit, lang)
-        return reshaped_pages
+            return {}
 
     def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         def get_es_query(regions: List[str]):

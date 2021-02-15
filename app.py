@@ -83,20 +83,19 @@ def get_query() -> str:
     return request.args.get('query', '')
 
 
-@app.route('/classes')
-@app.route('/classes/<class_>')
-@app.route('/classes/<class_>/<country>')
+@app.route('/articles')
+@app.route('/articles/<class_>')
+@app.route('/articles/<class_>/<country>')
 def classes(class_=None, country=None):
     db_handler = DBHandler(**cfg['db_handler'])
-    return jsonify(db_handler.classes(class_, country, get_start(), get_limit(), get_lang(), get_query()))
+    return jsonify(db_handler.articles(class_, country, get_start(), get_limit(), get_lang(), get_query()))
 
 
-@app.route('/countries')
-@app.route('/countries/<country>')
-@app.route('/countries/<country>/<class_>')
-def countries(country=None, class_=None):
+@app.route('/tweets')
+@app.route('/tweets/<country>')
+def tweets(country=None):
     db_handler = DBHandler(**cfg['db_handler'])
-    return jsonify(db_handler.countries(country, class_, get_start(), get_limit(), get_lang()))
+    return jsonify(db_handler.tweets(country, get_start(), get_limit(), get_lang()))
 
 
 @app.route('/update', methods=['POST'])

@@ -56,7 +56,7 @@
 }
 ```
 
-### [GET] /classes
+### [GET] /articles
 
 - Parameters
     - lang: string ('ja' or 'en')
@@ -125,7 +125,7 @@ One `<article-information>` is like:
 }
 ```
 
-### [GET] /classes/\<class_\>
+### [GET] /articles/\<class_\>
 
 `<class_>` must be an item in the topics in the meta-data.
 
@@ -150,7 +150,7 @@ One `<article-information>` is like:
 }
 ```
 
-### [GET] /classes/\<class_\>/\<country\>
+### [GET] /articles/\<class_\>/\<country\>
 
 `<country>` must be an item in the countries in the meta-data.
 
@@ -168,10 +168,6 @@ One `<article-information>` is like:
   "<article-information>"
 ]
 ```
-
-### [GET] /countries
-### [GET] /countries/\<country\>
-### [GET] /countries/\<country\>\<class_\>
 
 ## Developer Guides
 
