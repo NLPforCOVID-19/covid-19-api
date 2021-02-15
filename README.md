@@ -1,5 +1,8 @@
 # COVID-19-API for [COVID-19-UI]((https://github.com/NLPforCOVID-19/covid-19-ui))
 
+![Python Style Checker](https://github.com/NLPforCOVID-19/covid-19-api/workflows/Python%20Style%20Checker/badge.svg?branch=staging)
+![Deployment](https://github.com/NLPforCOVID-19/covid-19-api/workflows/Deployment/badge.svg)
+
 ## User Guides
 
 ### [GET] /meta
