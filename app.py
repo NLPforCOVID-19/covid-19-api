@@ -98,7 +98,7 @@ def articles(class_=None, country=None):
 @app.route('/tweets')
 @app.route('/tweets/<country>')
 def tweets(country=None):
-    return jsonify(db_handler.tweets(country, get_start(), get_limit(), get_lang()))
+    return jsonify(db_handler.tweets(country, get_start(), get_limit(), get_lang(), get_query()))
 
 
 @app.route('/update', methods=['POST'])

@@ -171,12 +171,33 @@ class DBHandler:
                     reshaped_pages[etopic][ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
         return reshaped_pages
 
-    def tweets(self, ecountry: str, start: int, limit: int, lang: str):
+    def tweets(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         if ecountry:
-            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
-            return []
+            return [
+                {
+                    'id': '1357006259413635076',
+                    'name': "nlpforcovid-19",
+                    'verified': True,
+                    'username': "nlpforcovid",
+                    'avatar': "https://pbs.twimg.com/profile_images/1347024085952331778/3oBHXOOn_bigger.jpg",
+                    'contentOrig': "欧州がより多くのワクチンを求めている（ヨーロッパ，経済・福祉政策のニュース，France 24",
+                    'contentTrans': None,
+                    'timestamp': "2021-02-10 14:45:03"
+                },
+            ]
         else:
-            return {}
+            return {
+                ecountry: {
+                    'id': '1357006259413635076',
+                    'name': "nlpforcovid-19",
+                    'verified': True,
+                    'username': "nlpforcovid",
+                    'avatar': "https://pbs.twimg.com/profile_images/1347024085952331778/3oBHXOOn_bigger.jpg",
+                    'contentOrig': "欧州がより多くのワクチンを求めている（ヨーロッパ，経済・福祉政策のニュース，France 24",
+                    'contentTrans': None,
+                    'timestamp': "2021-02-10 14:45:03"
+                } for ecountry in ECOUNTRY_ICOUNTRIES_MAP.keys()
+            }
 
     def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         def get_es_query(regions: List[str]):
