@@ -20,7 +20,8 @@ config = {
         'mongo_host': os.getenv('DB_HANDLER_MONGO_HOST'),
         'mongo_port': int(os.getenv('DB_HANDLER_MONGO_PORT')),
         'mongo_db_name': os.getenv('DB_HANDLER_MONGO_DB_NAME'),
-        'mongo_collection_name': os.getenv('DB_HANDLER_MONGO_COLLECTION_NAME'),
+        'mongo_article_collection_name': os.getenv('DB_HANDLER_MONGO_ARTICLE_COLLECTION_NAME'),
+        'mongo_tweet_collection_name': os.getenv('DB_HANDLER_MONGO_TWEET_COLLECTION_NAME'),
         'es_host': os.getenv('DB_HANDLER_ES_HOST'),
         'es_port': int(os.getenv('DB_HANDLER_ES_PORT'))
     },

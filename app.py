@@ -66,21 +66,21 @@ def index():
 def get_start() -> int:
     start = request.args.get('start', '0')  # NOTE: set the default value as a string object.
     if not start.isdecimal():
-        raise InvalidUsage('Parameter `start` must be an integer.')
+        raise InvalidUsage('Parameter "start" must be an integer.')
     return int(start)
 
 
 def get_limit() -> int:
     limit = request.args.get('limit', '10')  # NOTE: set the default value as a string object.
     if not limit.isdecimal():
-        raise InvalidUsage('Parameter `limit` must be an integer.')
+        raise InvalidUsage('Parameter "limit" must be an integer.')
     return int(limit)
 
 
 def get_lang() -> str:
     lang = request.args.get('lang', 'ja')
     if lang not in {'ja', 'en'}:
-        raise InvalidUsage('Allowed languages are `ja` and `en`.')
+        raise InvalidUsage('Allowed languages are either "ja" or "en".')
     return lang
 
 
@@ -88,17 +88,36 @@ def get_query() -> str:
     return request.args.get('query', '')
 
 
-@app.route('/articles')
-@app.route('/articles/<class_>')
-@app.route('/articles/<class_>/<country>')
-def articles(class_=None, country=None):
-    return jsonify(db_handler.articles(class_, country, get_start(), get_limit(), get_lang(), get_query()))
+@app.route('/articles/topic')
+@app.route('/articles/topic/<topic>')
+@app.route('/articles/topic/<topic>/<country>')
+def articles_sorted_by_topic(topic=None, country=None):
+    ret = db_handler.get_articles_sorted_by_topic(topic, country, get_start(), get_limit(), get_lang(), get_query())
+    return jsonify(ret)
 
 
-@app.route('/tweets')
-@app.route('/tweets/<country>')
-def tweets(country=None):
-    return jsonify(db_handler.tweets(country, get_start(), get_limit(), get_lang(), get_query()))
+@app.route('/articles/country')
+@app.route('/articles/country/<country>')
+@app.route('/articles/country/<country>/<topic>')
+def articles_sorted_by_country(country=None, topic=None):
+    ret = db_handler.get_articles_sorted_by_country(country, topic, get_start(), get_limit(), get_lang(), get_query())
+    return jsonify(ret)
+
+
+@app.route('/tweets/topic')
+@app.route('/tweets/topic/<topic>')
+@app.route('/tweets/topic/<topic>/<country>')
+def tweets_sorted_by_topic(topic=None, country=None):
+    ret = db_handler.get_tweets_sorted_by_topic(topic, country, get_start(), get_limit(), get_lang(), get_query())
+    return jsonify(ret)
+
+
+@app.route('/tweets/country')
+@app.route('/tweets/country/<country>')
+@app.route('/tweets/country/<country>/<topic>')
+def tweets_sorted_by_country(country=None, topic=None):
+    ret = db_handler.get_tweets_sorted_by_country(country, topic, get_start(), get_limit(), get_lang(), get_query())
+    return jsonify(ret)
 
 
 @app.route('/update', methods=['POST'])
