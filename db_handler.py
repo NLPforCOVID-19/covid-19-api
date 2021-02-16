@@ -199,7 +199,9 @@ class DBHandler:
         return reshaped_pages
 
     def tweets(self, ecountry: str, start: int, limit: int, lang: str, query: str):
-        if ecountry:
+        if ecountry == 'search':
+            return self.search_tweets(start, limit, lang, query)
+        elif ecountry:
             if ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
                 return []
             icountries = ECOUNTRY_ICOUNTRIES_MAP[ecountry]
@@ -215,42 +217,15 @@ class DBHandler:
     def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         def get_es_query(regions: List[str]):
             return {
-                'query': {
-                    'bool': {
-                        'must': [
-                            {
-                                'bool': {
-                                    'should': [
-                                        {
-                                            'term': {
-                                                'region': region
-                                            }
-                                        }
-                                        for region in regions
-                                    ]
-                                }
-                            },
-                            {
-                                'match': {
-                                    'text': query
-                                }
-                            },
-                        ],
-                    }
-                },
-                "highlight": {
-                    "fields": {
-                        "text": {}
-                    }
-                },
-                'sort': [{
-                    'timestamp.local': {
-                        'order': 'desc',
-                        'nested': {
-                            'path': 'timestamp'
-                        }
-                    }
-                }],
+                'query': {'bool': {'must': [
+                    {'bool': {'should': [{'term': {'region': region}} for region in regions]}},
+                    {'match': {'text': query}}
+                ]}},
+                'highlight': {'fields': {'text': {}}},
+                'sort': [{'timestamp.local': {
+                    'order': 'desc',
+                    'nested': {'path': 'timestamp'}
+                }}],
                 'from': start,
                 'size': limit,
             }
@@ -308,22 +283,17 @@ class DBHandler:
 
     @staticmethod
     def reshape_page(page: dict, lang: str, search_snippet=None) -> dict:
-        page['topics'] = [
-            {
-                'name': ETOPIC_TRANS_MAP[(ITOPIC_ETOPIC_MAP[itopic], lang)],
-                'snippet': page[f'{lang}_snippets'][itopic],
-                'relatedness': page['topics'][itopic]
-            }
-            for itopic in page['topics'] if itopic in ITOPICS
-        ]
+        page['topics'] = [{
+            'name': ETOPIC_TRANS_MAP[(ITOPIC_ETOPIC_MAP[itopic], lang)],
+            'snippet': page[f'{lang}_snippets'][itopic],
+            'relatedness': page['topics'][itopic]
+        } for itopic in page['topics'] if itopic in ITOPICS]
         if search_snippet:
-            page['topics'].append(
-                {
-                    'name': 'Search',
-                    'snippet': search_snippet[0],
-                    'relatedness': -1.
-                }
-            )
+            page['topics'].append({
+                'name': 'Search',
+                'snippet': search_snippet[0],
+                'relatedness': -1.
+            })
         page['translated'] = page[f'{lang}_translated']
         page['domain_label'] = page[f'{lang}_domain_label']
         page['is_about_false_rumor'] = 1 if page['domain'] == 'fij.info' else page['is_about_false_rumor']
@@ -344,6 +314,34 @@ class DBHandler:
             prev_context, rest = split[0], '<em>'.join(split[1:])
             prev_context = prev_context.split('、')[-1]
             return f'{prev_context}<em>{rest}'
+
+    def search_tweets(self, start: int, limit: int, lang: str, query: str) -> Dict[str, List[dict]]:
+        reshaped_tweets = {}
+        for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+            r = self.es.search(
+                index='covid19-tweets-ja' if lang == 'ja' else 'covid19-tweets-en',
+                body={
+                    'query': {'bool': {'must': [
+                        {'bool': {'should': [{'term': {'country': icountry}} for icountry in icountries]}},
+                        {'match': {'text': query}},
+                    ]}},
+                    'sort': [{'timestamp.local': {
+                        'order': 'desc',
+                        'nested': {'path': 'timestamp'}
+                    }}],
+                    'from': start,
+                    'size': limit,
+                }
+            )
+            reshaped_tweets[ecountry] = []
+            hits = r['hits']['hits']
+            if len(hits) > 0:
+                cur = self.article_collection.find(
+                    filter={'$or': [{'id_': hit['_id']} for hit in hits]},
+                    sort=self.get_sort()
+                )
+                reshaped_tweets[ecountry] = [self.reshape_tweet(d, lang) for d in cur]
+        return reshaped_tweets
 
     def get_tweets(self, icountries: List[str], start: int, limit: int, lang: str) -> List[dict]:
         filter_ = {'country': {'$in': icountries}}
