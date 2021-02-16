@@ -53,10 +53,10 @@ class DBHandler:
             es_host: str,
             es_port: int,
     ):
-        self.mongo = MongoClient(mongo_host, mongo_port)
-        self.db = self.mongo.get_database(mongo_db_name)
-        self.article_collection = self.db.get_collection(name=mongo_article_collection_name)
-        self.tweet_collection = self.db.get_collection(name=mongo_tweet_collection_name)
+        self.mongo_cli = MongoClient(mongo_host, mongo_port)
+        self.mongo_db = self.mongo_cli.get_database(mongo_db_name)
+        self.article_coll = self.mongo_db.get_collection(name=mongo_article_collection_name)
+        self.tweet_coll = self.mongo_db.get_collection(name=mongo_tweet_collection_name)
         self.es = Elasticsearch(f'{es_host}:{es_port}')
 
     def upsert_page(self, document: dict) -> Optional[Dict[str, str]]:
@@ -145,177 +145,208 @@ class DBHandler:
             'en_domain_label': en_domain_label
         }
 
-        existing_page = self.article_collection.find_one({'page.url': url})
+        existing_page = self.article_coll.find_one({'page.url': url})
         if existing_page and orig['timestamp'] > existing_page['page']['orig']['timestamp']:
-            self.article_collection.update_one({'page.url': url}, {'$set': {'page': document_}}, upsert=True)
+            self.article_coll.update_one({'page.url': url}, {'$set': {'page': document_}}, upsert=True)
             document_['status'] = Status.UPDATED
         elif not existing_page:
-            self.article_collection.insert_one({'page': document_})
+            self.article_coll.insert_one({'page': document_})
             document_['status'] = Status.INSERTED
         else:
             document_['status'] = Status.IGNORED
         return document_
 
-    def insert_tweets(self, tweets: List[Tweet]) -> Status:
-        """Add a tweet to the tweet collection."""
+    def upsert_tweets(self, tweets: List[Tweet]) -> Status:
         upserts = [UpdateOne({'_id': tweet._id}, {'$setOnInsert': asdict(tweet)}, upsert=True) for tweet in tweets]
-        self.tweet_collection.bulk_write(upserts)
+        self.tweet_coll.bulk_write(upserts)
         return Status.INSERTED
 
-    def articles(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
-        if etopic == 'search':
-            return self.search(ecountry, start, limit, lang, query)
-
+    def get_articles_sorted_by_topic(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
         ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
-
         if etopic and ecountry:
-            if etopic not in ETOPIC_ITOPICS_MAP or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+            if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
                 return []
-            itopics = ETOPIC_ITOPICS_MAP[etopic]
-            icountries = ECOUNTRY_ICOUNTRIES_MAP[ecountry]
-            reshaped_pages = self.get_pages(itopics, icountries, start, limit, lang)
+            reshaped_pages = self.get_articles(etopic, ecountry, start, limit, lang, query)
         elif etopic:
-            if etopic not in ETOPIC_ITOPICS_MAP:
-                return {ecountry: [] for ecountry in ECOUNTRY_ICOUNTRIES_MAP.keys()}
-            itopics = ETOPIC_ITOPICS_MAP[etopic]
             reshaped_pages = {}
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                reshaped_pages[ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
+            for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
+                if etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP:
+                    reshaped_pages[ecountry] = []
+                else:
+                    reshaped_pages[ecountry] = self.get_articles(etopic, ecountry, start, limit, lang, query)
         else:
             reshaped_pages = {}
-            for etopic, itopics in ETOPIC_ITOPICS_MAP.items():
-                if etopic == 'all':
-                    continue
+            for etopic in filter(lambda etopic_: etopic_ != 'all', ETOPIC_ITOPICS_MAP.keys()):
                 reshaped_pages[etopic] = {}
-                for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                    if ecountry == 'all':
-                        continue
-                    reshaped_pages[etopic][ecountry] = self.get_pages(itopics, icountries, start, limit, lang)
+                for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
+                    reshaped_pages[etopic][ecountry] = self.get_articles(etopic, ecountry, start, limit, lang, '')
         return reshaped_pages
 
-    def tweets(self, ecountry: str, start: int, limit: int, lang: str, query: str):
-        if ecountry == 'search':
-            return self.search_tweets(start, limit, lang, query)
+    def get_articles_sorted_by_country(self, ecountry: str, etopic: str, start: int, limit: int, lang: str, query: str):
+        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
+        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
+        if ecountry and etopic:
+            if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+                return []
+            reshaped_pages = self.get_articles(etopic, ecountry, start, limit, lang, query)
         elif ecountry:
-            if ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
-                return []
-            icountries = ECOUNTRY_ICOUNTRIES_MAP[ecountry]
-            reshaped_tweets = self.get_tweets(icountries, start, limit, lang)
-        else:
-            reshaped_tweets = {}
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                reshaped_tweets[ecountry] = self.get_tweets(icountries, start, limit, lang)
-        return reshaped_tweets
-
-    def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
-        def get_es_query(regions: List[str]):
-            return {
-                'query': {'bool': {'must': [
-                    {'bool': {'should': [{'term': {'region': region}} for region in regions]}},
-                    {'match': {'text': query}}
-                ]}},
-                'highlight': {'fields': {'text': {}}},
-                'sort': [{'timestamp.local': {
-                    'order': 'desc',
-                    'nested': {'path': 'timestamp'}
-                }}],
-                'from': start,
-                'size': limit,
-            }
-
-        def convert_hits_to_pages(hits: list) -> list:
-            if len(hits) == 0:
-                return []
-            url_to_hit = {hit['_source']['url']: hit for hit in hits}
-            cur = self.article_collection.find(
-                filter={'$or': [{'page.url': hit['_source']['url']} for hit in hits]},
-                sort=self.get_sort()
-            )
-            return [
-                self.reshape_page(d['page'], lang, self.trim_snippet(url_to_hit[d['page']['url']]['highlight']['text']))
-                for d in cur
-            ]
-
-        index = 'covid19-pages-ja' if lang == 'ja' else 'covid19-pages-en'
-
-        if ecountry:
-            body = get_es_query([c for c in ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])])
-            r = self.es.search(index=index, body=body)
-            return convert_hits_to_pages(r['hits']['hits'])
+            reshaped_pages = {}
+            for etopic in filter(lambda ecountry_: ecountry_ != 'all', ETOPIC_ITOPICS_MAP.keys()):
+                reshaped_pages[etopic] = self.get_articles(etopic, ecountry, start, limit, lang, query)
         else:
             reshaped_pages = {}
-            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
-                if ecountry == 'all':
-                    continue
-                body = get_es_query(icountries)
-                r = self.es.search(index=index, body=body)
-                reshaped_pages[ecountry] = convert_hits_to_pages(r['hits']['hits'])
-            return reshaped_pages
+            for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
+                reshaped_pages[ecountry] = {}
+                for etopic in filter(lambda etopic_: etopic_ != 'all', ETOPIC_ITOPICS_MAP.keys()):
+                    reshaped_pages[ecountry][etopic] = self.get_articles(etopic, ecountry, start, limit, lang, '')
+        return reshaped_pages
 
-    def get_pages(self, itopics: List[str], icountries: List[str], start: int, limit: int, lang: str) -> List[dict]:
-        filter_ = self.get_filter(itopics, icountries)
-        sort_ = self.get_sort(itopics)
-        cur = self.article_collection.find(filter=filter_, sort=sort_)
-        return [self.reshape_page(doc['page'], lang) for doc in cur.skip(start).limit(limit)]
+    def get_articles(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
+        # Utility functions.
+        def get_sort(itopics_: List[str] = None):
+            sort_ = [('page.orig.simple_timestamp', DESCENDING)]
+            if itopics_:
+                sort_ += [(f'page.topics.{itopic}', DESCENDING) for itopic in itopics_]
+            return sort_
 
-    @staticmethod
-    def get_filter(itopics: List[str] = None, icountries: List[str] = None) -> Dict[str, List]:
+        def trim_snippet(search_snippet: str):
+            if len(search_snippet) <= 70:
+                return search_snippet
+            else:
+                split = search_snippet.split('<em>')
+                prev_context, rest = split[0], '<em>'.join(split[1:])
+                prev_context = prev_context.split('、')[-1]
+                return f'{prev_context}<em>{rest}'
+
+        def reshape_article(doc: dict, search_snippet=None) -> dict:
+            doc['topics'] = [{
+                'name': ETOPIC_TRANS_MAP[(ITOPIC_ETOPIC_MAP[itopic], lang)],
+                'snippet': doc[f'{lang}_snippets'][itopic],
+                'relatedness': doc['topics'][itopic]
+            } for itopic in doc['topics'] if itopic in ITOPICS]
+            if search_snippet:
+                doc['topics'].append({
+                    'name': 'Search',
+                    'snippet': search_snippet[0],
+                    'relatedness': -1.
+                })
+            doc['translated'] = doc[f'{lang}_translated']
+            doc['domain_label'] = doc[f'{lang}_domain_label']
+            doc['is_about_false_rumor'] = 1 if doc['domain'] == 'fij.info' else doc['is_about_false_rumor']
+            del doc['ja_snippets']
+            del doc['en_snippets']
+            del doc['ja_translated']
+            del doc['en_translated']
+            del doc['ja_domain_label']
+            del doc['en_domain_label']
+            return doc
+
+        # Use ElasticSearch to search for articles.
+        if etopic and etopic == 'search':
+            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+            r = self.es.search(
+                index='covid19-pages-ja' if lang == 'ja' else 'covid19-pages-en',
+                body={
+                    'query': {'bool': {'must': [
+                        {'bool': {'should': [{'term': {'region': icountry}} for icountry in icountries]}},
+                        {'match': {'text': query}}
+                    ]}},
+                    'highlight': {'fields': {'text': {}}},
+                    'sort': [{'timestamp.local': {
+                        'order': 'desc',
+                        'nested': {'path': 'timestamp'}
+                    }}],
+                    'from': start,
+                    'size': limit,
+                }
+            )
+            hits = r['hits']['hits']
+            if len(hits) == 0:
+                return []
+
+            url_to_hit = {hit['_source']['url']: hit for hit in hits}
+            cur = self.article_coll.find(
+                filter={'$or': [{'page.url': hit['_source']['url']} for hit in hits]},
+                sort=get_sort()
+            )
+            return [reshape_article(
+                d['page'],
+                trim_snippet(url_to_hit[d['page']['url']]['highlight']['text'])
+            ) for d in cur]
+
+        # Use MongoDB to search for articles.
+        itopics = ETOPIC_ITOPICS_MAP.get(etopic, [])
+        icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
+
         filters = [{'$and': [{'page.is_about_COVID-19': 1}, {'page.is_hidden': 0}]}]
         if itopics:
             filters += [{'$or': [{f'page.topics.{itopic}': {'$exists': True}} for itopic in itopics]}]
-        if icountries:
+        if ecountry:
             filters += [{'page.displayed_country': {'$in': icountries}}]
-        return {'$and': filters}
+        filter_ = {'$and': filters}
+        sort_ = get_sort(itopics)
+        cur = self.article_coll.find(filter=filter_, sort=sort_)
+        reshaped_articles = [reshape_article(doc['page'], lang) for doc in cur.skip(start).limit(limit)]
+        return reshaped_articles
 
-    @staticmethod
-    def get_sort(itopics: List[str] = None):
-        sort_ = [('page.orig.simple_timestamp', DESCENDING)]
-        if itopics:
-            sort_ += [(f'page.topics.{itopic}', DESCENDING) for itopic in itopics]
-        return sort_
-
-    @staticmethod
-    def reshape_page(page: dict, lang: str, search_snippet=None) -> dict:
-        page['topics'] = [{
-            'name': ETOPIC_TRANS_MAP[(ITOPIC_ETOPIC_MAP[itopic], lang)],
-            'snippet': page[f'{lang}_snippets'][itopic],
-            'relatedness': page['topics'][itopic]
-        } for itopic in page['topics'] if itopic in ITOPICS]
-        if search_snippet:
-            page['topics'].append({
-                'name': 'Search',
-                'snippet': search_snippet[0],
-                'relatedness': -1.
-            })
-        page['translated'] = page[f'{lang}_translated']
-        page['domain_label'] = page[f'{lang}_domain_label']
-        page['is_about_false_rumor'] = 1 if page['domain'] == 'fij.info' else page['is_about_false_rumor']
-        del page['ja_snippets']
-        del page['en_snippets']
-        del page['ja_translated']
-        del page['en_translated']
-        del page['ja_domain_label']
-        del page['en_domain_label']
-        return page
-
-    @staticmethod
-    def trim_snippet(search_snippet):
-        if len(search_snippet) <= 70:
-            return search_snippet
+    def get_tweets_sorted_by_topic(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
+        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
+        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
+        if etopic and ecountry:
+            if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+                return []
+            reshaped_tweets = self.get_tweets(etopic, ecountry, start, limit, lang, query)
+        elif etopic:
+            reshaped_tweets = {}
+            for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
+                if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) and etopic not in ETOPIC_ITOPICS_MAP:
+                    reshaped_tweets[ecountry] = []
+                else:
+                    reshaped_tweets[ecountry] = self.get_tweets(etopic, ecountry, start, limit, lang, query)
         else:
-            split = search_snippet.split('<em>')
-            prev_context, rest = split[0], '<em>'.join(split[1:])
-            prev_context = prev_context.split('、')[-1]
-            return f'{prev_context}<em>{rest}'
+            reshaped_tweets = {}
+            for etopic in ['all']:
+                reshaped_tweets[etopic] = {}
+                for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
+                    reshaped_tweets[etopic][ecountry] = self.get_tweets(etopic, ecountry, start, limit, lang, query)
+        return reshaped_tweets
 
-    def search_tweets(self, start: int, limit: int, lang: str, query: str) -> Dict[str, List[dict]]:
-        reshaped_tweets = {}
-        for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+    def get_tweets_sorted_by_country(self, ecountry: str, etopic: str, start: int, limit: int, lang: str, query: str):
+        ecountry = ECOUNTRY_TRANS_MAP.get((ecountry, 'ja'), ecountry)
+        etopic = ETOPIC_TRANS_MAP.get((etopic, 'ja'), etopic)
+        if ecountry and etopic:
+            if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) or ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+                return []
+            reshaped_tweets = self.get_tweets(etopic, ecountry, start, limit, lang, query)
+        elif ecountry:
+            reshaped_tweets = {}
+            for etopic in ['all']:
+                reshaped_tweets[etopic] = self.get_tweets(etopic, ecountry, start, limit, lang, query)
+        else:
+            reshaped_tweets = {}
+            for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
+                reshaped_tweets[ecountry] = {}
+                for etopic in ['all']:
+                    reshaped_tweets[ecountry][etopic] = self.get_tweets(etopic, ecountry, start, limit, lang, query)
+        return reshaped_tweets
+
+    def get_tweets(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str) -> List[dict]:
+        # Utility functions.
+        def reshape_tweet(doc: dict, lang: str) -> dict:
+            doc['id'] = doc['_id']
+            del doc['_id']
+            doc['contentTrans'] = doc['contentJaTrans'] if lang == 'ja' else doc['contentEnTrans']
+            del doc['contentJaTrans']
+            del doc['contentEnTrans']
+            del doc['simpleTimestamp']
+            del doc['retweetCount']
+            del doc['country']
+            return doc
+
+        # Use ElasticSearch to search for articles.
+        if etopic and etopic == 'search':
+            icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
             r = self.es.search(
                 index='covid19-tweets-ja' if lang == 'ja' else 'covid19-tweets-en',
                 body={
@@ -331,33 +362,23 @@ class DBHandler:
                     'size': limit,
                 }
             )
-            reshaped_tweets[ecountry] = []
             hits = r['hits']['hits']
-            if len(hits) > 0:
-                cur = self.article_collection.find(
-                    filter={'$or': [{'id_': hit['_id']} for hit in hits]},
-                    sort=self.get_sort()
-                )
-                reshaped_tweets[ecountry] = [self.reshape_tweet(d, lang) for d in cur]
-        return reshaped_tweets
+            if len(hits) == 0:
+                return []
+            cur = self.tweet_coll.find(
+                filter={'$or': [{'id_': hit['_id']} for hit in hits]},
+                sort=[('simpleTimestamp', DESCENDING)]
+            )
+            return [reshape_tweet(d, lang) for d in cur]
 
-    def get_tweets(self, icountries: List[str], start: int, limit: int, lang: str) -> List[dict]:
+        # Use MongoDB to search for articles.
+        if etopic != 'all':
+            return []  # This is because tweets are not categorized by topics at the moment.
+        icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
         filter_ = {'country': {'$in': icountries}}
         sort_ = [('simpleTimestamp', DESCENDING), ('retweetCount', DESCENDING)]
-        cur = self.tweet_collection.find(filter=filter_, sort=sort_)
-        return [self.reshape_tweet(doc, lang) for doc in cur.skip(start).limit(limit)]
-
-    @staticmethod
-    def reshape_tweet(doc: dict, lang: str) -> dict:
-        doc['id'] = doc['_id']
-        del doc['_id']
-        doc['contentTrans'] = doc['contentJaTrans'] if lang == 'ja' else doc['contentEnTrans']
-        del doc['contentJaTrans']
-        del doc['contentEnTrans']
-        del doc['simpleTimestamp']
-        del doc['retweetCount']
-        del doc['country']
-        return doc
+        cur = self.tweet_coll.find(filter=filter_, sort=sort_)
+        return [reshape_tweet(doc, lang) for doc in cur.skip(start).limit(limit)]
 
     def update_page(
             self,
@@ -376,7 +397,7 @@ class DBHandler:
         new_is_about_false_rumor = 1 if is_about_false_rumor else 0
         new_etopics = {ETOPIC_ITOPICS_MAP[etopic][0]: 1.0 for etopic in etopics}
 
-        self.article_collection.update_one(
+        self.article_coll.update_one(
             {'page.url': url},
             {'$set': {
                 'page.is_hidden': new_is_hidden,

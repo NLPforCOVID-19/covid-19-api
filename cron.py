@@ -39,16 +39,16 @@ def update_database(do_tweet: bool = False):
             d = db_handler.upsert_page(json.loads(line))
             if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
                 maybe_tweeted_ds.append(d)
-    num_docs = db_handler.article_collection.count_documents({})
+    num_docs = db_handler.article_coll.count_documents({})
     log_handler.extend_page_number_log([f'{time.asctime()}:The number of pages is {num_docs}.'])
 
     logger.debug('Add manually checked pages.')
     for line in log_handler.iterate_topic_check_log():
         log = json.loads(line)
-        existing_page = db_handler.article_collection.find_one({'page.url': log['url']})
+        existing_page = db_handler.article_coll.find_one({'page.url': log['url']})
         if not existing_page:
             continue
-        db_handler.article_collection.update_one(
+        db_handler.article_coll.update_one(
             {'page.url': log['url']},
             {'$set': {
                 'page.is_about_COVID-19': log['is_about_COVID-19'],
@@ -115,11 +115,11 @@ def update_database(do_tweet: bool = False):
 
         if len(buf) == 1000:
             logger.debug('Write 1000 tweets.')
-            _ = db_handler.insert_tweets(buf)
+            _ = db_handler.upsert_tweets(buf)
             buf = []
 
     if buf:
-        _ = db_handler.insert_tweets(buf)
+        _ = db_handler.upsert_tweets(buf)
 
 
 def update_stats():

@@ -59,12 +59,15 @@
 }
 ```
 
-### [GET] /articles
+### [GET] /articles/topic
+
+Return articles sorted by topics.
 
 - Parameters
     - lang: string ('ja' or 'en')
     - start: string (must be able to casted to an integer)
     - limit: string (must be able to casted to an integer)
+    - query: string (required when specifying `search` as `<topic>`)
 - Returns
     - application/json
 - Example value
@@ -96,12 +99,14 @@
 
 One `<article-information>` is like:
 
+- Example value
+
 ```json
 {
   "country": "jp",
   "displayed_country": "jp",
-  "domain": "www.mhlw.go.jp",
-  "domain_label": "厚生労働省",
+  "domain": "example.jp",
+  "domain_label": "domain label",
   "is_about_COVID-19": 1,
   "is_about_false_rumor": 0,
   "is_checked": 1,
@@ -109,9 +114,9 @@ One `<article-information>` is like:
   "is_hidden": 0,
   "is_useful": 1,
   "orig": {
-    "simple_timestamp": "2021-01-05",
-    "timestamp": "2021-01-05T09:43:05.197831",
-    "title": "国内の発生状況など｜厚生労働省"
+    "simple_timestamp": "timestamp",
+    "timestamp": "timestamp",
+    "title": "title"
   },
   "topics": [
     {
@@ -121,23 +126,17 @@ One `<article-information>` is like:
     }
   ],
   "translated": {
-    "timestamp": "2021-01-05T09:51:01.787790",
-    "title": "国内の発生状況など"
+    "timestamp": "timestamp",
+    "title": "title"
   },
-  "url": "https://www.mhlw.go.jp/stf/covid-19/kokunainohasseijoukyou.html"
+  "url": "example.com"
 }
 ```
 
-### [GET] /articles/\<class_\>
+### [GET] /articles/topic/\<topic\>
 
-`<class_>` must be an item in the topics in the meta-data.
+`<topic>` must be an item in the topics in the meta-data or `all` or `search`. When using `search`, specify the `query` parameter.
 
-- Parameters
-    - lang: string ('ja' or 'en')
-    - start: string (must be able to casted to an integer)
-    - limit: string (must be able to casted to an integer)
-- Returns
-    - application/json
 - Example value
 
 ```json
@@ -153,9 +152,26 @@ One `<article-information>` is like:
 }
 ```
 
-### [GET] /articles/\<class_\>/\<country\>
+### [GET] /articles/topic/\<topic\>/\<country\>
 
-`<country>` must be an item in the countries in the meta-data.
+`<country>` must be an item in the countries in the meta-data or `all`.
+
+- Example value
+
+```json
+[
+  "<article-information>",
+  "<article-information>"
+]
+```
+
+### [GET] /articles/country
+### [GET] /articles/country/\<country\>
+### [GET] /articles/country/\<country\>/\<topic\>
+
+### [GET] /tweets/topic
+
+Return tweets sorted by topics. **At the moment, no topic information is available. Special topics, `all` and `search`, are only allowed.**
 
 - Parameters
     - lang: string ('ja' or 'en')
@@ -166,11 +182,70 @@ One `<article-information>` is like:
 - Example value
 
 ```json
+{
+  "all": {
+    "jp": [
+      "<tweet-information>",
+      "<tweet-information>"
+    ],
+    "cn": [
+      "<tweet-information>",
+      "<tweet-information>"
+    ]
+  }
+}
+```
+
+One `<tweet-information>` is like:
+
+```json
+{
+  "avatar": "example.jpg",
+  "contentOrig": "example text",
+  "contentTrans": "translated example text",
+  "id": 12345678901234567890,
+  "name": "name",
+  "timestamp": "timestamp",
+  "username": "screen bane",
+  "verified": true
+}
+```
+
+### [GET] /tweets/topic/\<topic\>
+
+**At the moment, no topic information is available. Special topics, `all` and `search`, are only allowed.**
+
+- Example value
+
+```json
+{
+  "jp": [
+    "<tweet-information>",
+    "<tweet-information>"
+  ],
+  "cn": [
+    "<tweet-information>",
+    "<tweet-information>"
+  ]
+}
+```
+
+### [GET] /tweets/topic/\<topic\>/\<country\>
+
+**At the moment, no topic information is available. Special topics, `all` and `search`, are only allowed.**
+
+- Example value
+
+```json
 [
-  "<article-information>",
-  "<article-information>"
+  "<tweet-information>",
+  "<tweet-information>"
 ]
 ```
+
+### [GET] /tweets/country
+### [GET] /tweets/country/\<country\>
+### [GET] /tweets/country/\<country\>/\<topic\>
 
 ## Developer Guides
 
