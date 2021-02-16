@@ -70,9 +70,13 @@ def update_database(do_tweet: bool = False):
         text = twitter_handler.create_text(d)
         twitter_handler.post(text)
 
-    logger.debug('Add tweets.')
+    logger.debug('Add today\'s tweets.')
+
     data_path = cfg['data']['tweet_list']
-    for path in pathlib.Path(data_path).glob('**/*.json'):
+    today = datetime.today()
+    glob_pat = f'*/orig/{today.strftime("%Y")}/{today.strftime("%m")}/{today.strftime("%d")}/*/*.json'
+    buf = []
+    for path in pathlib.Path(data_path).glob(glob_pat):
         with path.open() as f:
             raw_data = json.load(f)
 
@@ -91,24 +95,31 @@ def update_database(do_tweet: bool = False):
         if en_path.exists():
             with en_path.open() as f:
                 en_translated_data = f.read().strip()
-        _ = db_handler.insert_tweet(Tweet(
-            id_=raw_data['id'],
+
+        buf.append(Tweet(
+            _id=raw_data['id'],
             name=raw_data['user']['name'],
             verified=raw_data['user']['verified'],
             username=raw_data['user']['screen_name'],
             avatar=raw_data['user']['profile_image_url'],
-            timestamp=datetime
-                      .strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
-                      .strftime('%Y-%m-%d %H:%M:%S'),
-            simpleTimestamp=datetime
-                      .strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
-                      .isoformat(),
+            timestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                              .strftime('%Y-%m-%d %H:%M:%S'),
+            simpleTimestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                                    .isoformat(),
             contentOrig=raw_data.get('full_text', '') or raw_data['text'],
             contentJaTrans=ja_translated_data,
             contentEnTrans=en_translated_data,
             retweetCount=raw_data['retweet_count'],
-            country=meta_data['country_code'].lower(),
+            country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
         ))
+
+        if len(buf) == 1000:
+            logger.debug('Write 1000 tweets.')
+            _ = db_handler.insert_tweets(buf)
+            buf = []
+
+    if buf:
+        _ = db_handler.insert_tweets(buf)
 
 
 def update_stats():

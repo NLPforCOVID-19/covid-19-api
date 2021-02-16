@@ -4,7 +4,7 @@ from dataclasses import dataclass, asdict
 from typing import List, Dict, Union, Optional
 
 from elasticsearch import Elasticsearch
-from pymongo import MongoClient, DESCENDING
+from pymongo import MongoClient, UpdateOne, DESCENDING
 
 from util import (
     ITOPICS,
@@ -27,7 +27,7 @@ class Status(Enum):
 
 @dataclass
 class Tweet:
-    id_: str
+    _id: str
     name: str
     verified: bool
     username: str
@@ -156,13 +156,11 @@ class DBHandler:
             document_['status'] = Status.IGNORED
         return document_
 
-    def insert_tweet(self, tweet: Tweet) -> Status:
+    def insert_tweets(self, tweets: List[Tweet]) -> Status:
         """Add a tweet to the tweet collection."""
-        existing_tweet = self.tweet_collection.find_one({'id_': tweet.id_})
-        if not existing_tweet:
-            self.tweet_collection.insert_one(asdict(tweet))
-            return Status.INSERTED
-        return Status.IGNORED
+        upserts = [UpdateOne({'_id': tweet._id}, {'$setOnInsert': asdict(tweet)}, upsert=True) for tweet in tweets]
+        self.tweet_collection.bulk_write(upserts)
+        return Status.INSERTED
 
     def articles(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         if etopic == 'search':
@@ -351,9 +349,8 @@ class DBHandler:
 
     @staticmethod
     def reshape_tweet(doc: dict, lang: str) -> dict:
+        doc['id'] = doc['_id']
         del doc['_id']
-        doc['id'] = doc['id_']
-        del doc['id_']
         doc['contentTrans'] = doc['contentJaTrans'] if lang == 'ja' else doc['contentEnTrans']
         del doc['contentJaTrans']
         del doc['contentEnTrans']
