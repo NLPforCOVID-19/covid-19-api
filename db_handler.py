@@ -155,11 +155,11 @@ class DBHandler:
             document_['status'] = Status.IGNORED
         return document_
 
-    def insert_tweet(self, document: Tweet) -> Status:
-        """Add a tweet (`document`) to the tweet collection."""
-        existing_tweet = self.tweet_collection.find_one({'id_': document.id_})
+    def insert_tweet(self, tweet: Tweet) -> Status:
+        """Add a tweet to the tweet collection."""
+        existing_tweet = self.tweet_collection.find_one({'id_': tweet.id_})
         if not existing_tweet:
-            self.tweet_collection.insert_one(asdict(document))
+            self.tweet_collection.insert_one(asdict(tweet))
             return Status.INSERTED
         return Status.IGNORED
 
