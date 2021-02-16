@@ -33,8 +33,9 @@ class Tweet:
     username: str
     avatar: str
     timestamp: str
+    simpleTimestamp: str
     contentOrig: str
-    retweet_count: int
+    retweetCount: int
     country: str
     contentJaTrans: str = ''
     contentEnTrans: str = ''
@@ -199,31 +200,17 @@ class DBHandler:
 
     def tweets(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         if ecountry:
-            return [
-                {
-                    'id': '1357006259413635076',
-                    'name': "nlpforcovid-19",
-                    'verified': True,
-                    'username': "nlpforcovid",
-                    'avatar': "https://pbs.twimg.com/profile_images/1347024085952331778/3oBHXOOn_bigger.jpg",
-                    'contentOrig': "欧州がより多くのワクチンを求めている（ヨーロッパ，経済・福祉政策のニュース，France 24",
-                    'contentTrans': None,
-                    'timestamp': "2021-02-10 14:45:03"
-                },
-            ]
+            if ecountry not in ECOUNTRY_ICOUNTRIES_MAP:
+                return []
+            icountries = ECOUNTRY_ICOUNTRIES_MAP[ecountry]
+            reshaped_tweets = self.get_tweets(icountries, start, limit, lang)
         else:
-            return {
-                ecountry: {
-                    'id': '1357006259413635076',
-                    'name': "nlpforcovid-19",
-                    'verified': True,
-                    'username': "nlpforcovid",
-                    'avatar': "https://pbs.twimg.com/profile_images/1347024085952331778/3oBHXOOn_bigger.jpg",
-                    'contentOrig': "欧州がより多くのワクチンを求めている（ヨーロッパ，経済・福祉政策のニュース，France 24",
-                    'contentTrans': None,
-                    'timestamp': "2021-02-10 14:45:03"
-                } for ecountry in ECOUNTRY_ICOUNTRIES_MAP.keys()
-            }
+            reshaped_tweets = {}
+            for ecountry, icountries in ECOUNTRY_ICOUNTRIES_MAP.items():
+                if ecountry == 'all':
+                    continue
+                reshaped_tweets[ecountry] = self.get_tweets(icountries, start, limit, lang)
+        return reshaped_tweets
 
     def search(self, ecountry: str, start: int, limit: int, lang: str, query: str):
         def get_es_query(regions: List[str]):
@@ -357,6 +344,25 @@ class DBHandler:
             prev_context, rest = split[0], '<em>'.join(split[1:])
             prev_context = prev_context.split('、')[-1]
             return f'{prev_context}<em>{rest}'
+
+    def get_tweets(self, icountries: List[str], start: int, limit: int, lang: str) -> List[dict]:
+        filter_ = {'country': {'$in': icountries}}
+        sort_ = [('simpleTimestamp', DESCENDING), ('retweetCount', DESCENDING)]
+        cur = self.tweet_collection.find(filter=filter_, sort=sort_)
+        return [self.reshape_tweet(doc, lang) for doc in cur.skip(start).limit(limit)]
+
+    @staticmethod
+    def reshape_tweet(doc: dict, lang: str) -> dict:
+        del doc['_id']
+        doc['id'] = doc['id_']
+        del doc['id_']
+        doc['contentTrans'] = doc['contentJaTrans'] if lang == 'ja' else doc['contentEnTrans']
+        del doc['contentJaTrans']
+        del doc['contentEnTrans']
+        del doc['simpleTimestamp']
+        del doc['retweetCount']
+        del doc['country']
+        return doc
 
     def update_page(
             self,

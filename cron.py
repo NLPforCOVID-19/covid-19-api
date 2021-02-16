@@ -100,10 +100,13 @@ def update_database(do_tweet: bool = False):
             timestamp=datetime
                       .strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
                       .strftime('%Y-%m-%d %H:%M:%S'),
+            simpleTimestamp=datetime
+                      .strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                      .isoformat(),
             contentOrig=raw_data.get('full_text', '') or raw_data['text'],
             contentJaTrans=ja_translated_data,
             contentEnTrans=en_translated_data,
-            retweet_count=raw_data['retweet_count'],
+            retweetCount=raw_data['retweet_count'],
             country=meta_data['country_code'].lower(),
         ))
 
