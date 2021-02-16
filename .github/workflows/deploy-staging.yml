@@ -40,6 +40,7 @@ jobs:
           SLACK_HANDLER_ACCESS_TOKENS: ${{ secrets.SLACK_HANDLER_ACCESS_TOKENS }}
           SLACK_HANDLER_APP_CHANNELS: ${{ secrets.SLACK_HANDLER_APP_CHANNELS }}
           ARTICLE_LIST: ${{ secrets.ARTICLE_LIST }}
+          TWEET_LIST: ${{ secrets.TWEET_LIST }}
           SITE_LIST: ${{ secrets.SITE_LIST }}
         run: |
           python conf.py
