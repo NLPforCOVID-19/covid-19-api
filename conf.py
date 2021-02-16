@@ -41,6 +41,7 @@ config = {
     ],
     'data': {
         'article_list': os.getenv('ARTICLE_LIST'),
+        'tweet_list': os.getenv('TWEET_LIST'),
         'site_list': os.getenv('SITE_LIST')
     }
 }
