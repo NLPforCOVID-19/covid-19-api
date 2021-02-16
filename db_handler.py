@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from dataclasses import dataclass, asdict
 from typing import List, Dict, Union, Optional
 
 from elasticsearch import Elasticsearch
@@ -24,6 +25,21 @@ class Status(Enum):
     IGNORED = 2
 
 
+@dataclass
+class Tweet:
+    id_: str
+    name: str
+    verified: bool
+    username: str
+    avatar: str
+    timestamp: str
+    contentOrig: str
+    retweet_count: int
+    country: str
+    contentJaTrans: str = ''
+    contentEnTrans: str = ''
+
+
 class DBHandler:
 
     def __init__(
@@ -31,13 +47,15 @@ class DBHandler:
             mongo_host: str,
             mongo_port: int,
             mongo_db_name: str,
-            mongo_collection_name: str,
+            mongo_article_collection_name: str,
+            mongo_tweet_collection_name: str,
             es_host: str,
             es_port: int,
     ):
         self.mongo = MongoClient(mongo_host, mongo_port)
         self.db = self.mongo.get_database(mongo_db_name)
-        self.collection = self.db.get_collection(name=mongo_collection_name)
+        self.article_collection = self.db.get_collection(name=mongo_article_collection_name)
+        self.tweet_collection = self.db.get_collection(name=mongo_tweet_collection_name)
         self.es = Elasticsearch(f'{es_host}:{es_port}')
 
     def upsert_page(self, document: dict) -> Optional[Dict[str, str]]:
@@ -126,16 +144,24 @@ class DBHandler:
             'en_domain_label': en_domain_label
         }
 
-        existing_page = self.collection.find_one({'page.url': url})
+        existing_page = self.article_collection.find_one({'page.url': url})
         if existing_page and orig['timestamp'] > existing_page['page']['orig']['timestamp']:
-            self.collection.update_one({'page.url': url}, {'$set': {'page': document_}}, upsert=True)
+            self.article_collection.update_one({'page.url': url}, {'$set': {'page': document_}}, upsert=True)
             document_['status'] = Status.UPDATED
         elif not existing_page:
-            self.collection.insert_one({'page': document_})
+            self.article_collection.insert_one({'page': document_})
             document_['status'] = Status.INSERTED
         else:
             document_['status'] = Status.IGNORED
         return document_
+
+    def insert_tweet(self, document: Tweet) -> Status:
+        """Add a tweet (`document`) to the tweet collection."""
+        existing_tweet = self.tweet_collection.find_one({'id_': document.id_})
+        if not existing_tweet:
+            self.tweet_collection.insert_one(asdict(document))
+            return Status.INSERTED
+        return Status.IGNORED
 
     def articles(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
         if etopic == 'search':
@@ -246,7 +272,7 @@ class DBHandler:
             if len(hits) == 0:
                 return []
             url_to_hit = {hit['_source']['url']: hit for hit in hits}
-            cur = self.collection.find(
+            cur = self.article_collection.find(
                 filter={'$or': [{'page.url': hit['_source']['url']} for hit in hits]},
                 sort=self.get_sort()
             )
@@ -274,7 +300,7 @@ class DBHandler:
     def get_pages(self, itopics: List[str], icountries: List[str], start: int, limit: int, lang: str) -> List[dict]:
         filter_ = self.get_filter(itopics, icountries)
         sort_ = self.get_sort(itopics)
-        cur = self.collection.find(filter=filter_, sort=sort_)
+        cur = self.article_collection.find(filter=filter_, sort=sort_)
         return [self.reshape_page(doc['page'], lang) for doc in cur.skip(start).limit(limit)]
 
     @staticmethod
@@ -349,7 +375,7 @@ class DBHandler:
         new_is_about_false_rumor = 1 if is_about_false_rumor else 0
         new_etopics = {ETOPIC_ITOPICS_MAP[etopic][0]: 1.0 for etopic in etopics}
 
-        self.collection.update_one(
+        self.article_collection.update_one(
             {'page.url': url},
             {'$set': {
                 'page.is_hidden': new_is_hidden,
