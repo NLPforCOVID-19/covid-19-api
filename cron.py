@@ -20,7 +20,6 @@ from twitter_handler import TwitterHandler
 from util import load_config, COUNTRIES, ECOUNTRY_ICOUNTRIES_MAP
 
 logger = logging.getLogger(__file__)
-logging.basicConfig(level='DEBUG')
 
 cfg = load_config()
 
@@ -195,6 +194,8 @@ def main():
     parser.add_argument('--update_sources', action='store_true', help='If true, update the source information.')
     parser.add_argument('--do_tweet', action='store_true', help='If true, randomly tweet a newly registered page.')
     args = parser.parse_args()
+
+    logging.basicConfig(level='DEBUG')
 
     if args.update_all or args.update_database:
         update_database(do_tweet=args.do_tweet)
