@@ -300,7 +300,7 @@ class DBHandler:
         elif etopic:
             reshaped_tweets = {}
             for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
-                if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) and etopic not in ETOPIC_ITOPICS_MAP:
+                if etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP:
                     reshaped_tweets[ecountry] = []
                 else:
                     reshaped_tweets[ecountry] = self.get_tweets(etopic, ecountry, start, limit, lang, query)
@@ -366,7 +366,7 @@ class DBHandler:
             if len(hits) == 0:
                 return []
             cur = self.tweet_coll.find(
-                filter={'$or': [{'id_': hit['_id']} for hit in hits]},
+                filter={'_id': {'$in': [int(hit['_id']) for hit in hits]}},
                 sort=[('simpleTimestamp', DESCENDING)]
             )
             return [reshape_tweet(d, lang) for d in cur]
