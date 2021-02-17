@@ -171,12 +171,13 @@ One `<article-information>` is like:
 
 ### [GET] /tweets/topic
 
-Return tweets sorted by topics. **At the moment, no topic information is available. Special topics, `all` and `search`, are only allowed.**
+Return tweets sorted by topics. **No topic information is available at the moment. Only special topics, `all` and `search`, are valid.**
 
 - Parameters
     - lang: string ('ja' or 'en')
     - start: string (must be able to casted to an integer)
     - limit: string (must be able to casted to an integer)
+    - query: string (required when specifying `search` as `<topic>`)
 - Returns
     - application/json
 - Example value
@@ -213,8 +214,6 @@ One `<tweet-information>` is like:
 
 ### [GET] /tweets/topic/\<topic\>
 
-**At the moment, no topic information is available. Special topics, `all` and `search`, are only allowed.**
-
 - Example value
 
 ```json
@@ -231,8 +230,6 @@ One `<tweet-information>` is like:
 ```
 
 ### [GET] /tweets/topic/\<topic\>/\<country\>
-
-**At the moment, no topic information is available. Special topics, `all` and `search`, are only allowed.**
 
 - Example value
 
@@ -304,7 +301,8 @@ LOG_HANDLER_LOG_DIR=""
 DB_HANDLER_MONGO_HOST=""
 DB_HANDLER_MONGO_PORT=""
 DB_HANDLER_MONGO_DB_NAME=""
-DB_HANDLER_MONGO_COLLECTION_NAME=""
+DB_HANDLER_MONGO_ARTICLE_COLLECTION_NAME=""
+DB_HANDLER_MONGO_TWEET_COLLECTION_NAME=""
 DB_HANDLER_ES_HOST=""
 DB_HANDLER_ES_PORT=""
 
@@ -320,6 +318,7 @@ SLACK_HANDLER_APP_CHANNELS=""
 
 # Data
 ARTICLE_LIST=""
+TWEET_LIST=""
 SITE_LIST=""
 ```
 
