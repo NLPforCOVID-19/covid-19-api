@@ -7,7 +7,7 @@ import shutil
 import tempfile
 import time
 import pathlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 
@@ -20,7 +20,6 @@ from twitter_handler import TwitterHandler
 from util import load_config, COUNTRIES, ECOUNTRY_ICOUNTRIES_MAP
 
 logger = logging.getLogger(__file__)
-logging.basicConfig(level='DEBUG')
 
 cfg = load_config()
 
@@ -70,56 +69,59 @@ def update_database(do_tweet: bool = False):
         text = twitter_handler.create_text(d)
         twitter_handler.post(text)
 
-    logger.debug('Add today\'s tweets.')
-
+    logger.debug('Add tweets posted in the last 2 days.')
     data_path = cfg['data']['tweet_list']
-    today = datetime.today()
-    glob_pat = f'*/orig/{today.strftime("%Y")}/{today.strftime("%m")}/{today.strftime("%d")}/*/*.json'
-    buf = []
-    for path in pathlib.Path(data_path).glob(glob_pat):
-        with path.open() as f:
-            raw_data = json.load(f)
 
-        meta_path = path.parent.joinpath(f'{path.stem}.metadata')
-        with meta_path.open() as f:
-            meta_data = json.load(f)
+    def add_tweets(dt):
+        buf = []
+        glob_pat = f'*/orig/{dt.strftime("%Y")}/{dt.strftime("%m")}/{dt.strftime("%d")}/*/*.json'
+        for path in pathlib.Path(data_path).glob(glob_pat):
+            with path.open() as f:
+                raw_data = json.load(f)
 
-        ja_path = pathlib.Path(str(path).replace('orig', 'ja_translated').replace('.json', '.txt'))
-        ja_translated_data = ''
-        if ja_path.exists():
-            with ja_path.open() as f:
-                ja_translated_data = f.read().strip()
+            meta_path = path.parent.joinpath(f'{path.stem}.metadata')
+            with meta_path.open() as f:
+                meta_data = json.load(f)
 
-        en_path = pathlib.Path(str(path).replace('orig', 'en_translated').replace('.json', '.txt'))
-        en_translated_data = ''
-        if en_path.exists():
-            with en_path.open() as f:
-                en_translated_data = f.read().strip()
+            ja_path = pathlib.Path(str(path).replace('orig', 'ja_translated').replace('.json', '.txt'))
+            ja_translated_data = ''
+            if ja_path.exists():
+                with ja_path.open() as f:
+                    ja_translated_data = f.read().strip()
 
-        buf.append(Tweet(
-            _id=raw_data['id'],
-            name=raw_data['user']['name'],
-            verified=raw_data['user']['verified'],
-            username=raw_data['user']['screen_name'],
-            avatar=raw_data['user']['profile_image_url'],
-            timestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
-                              .strftime('%Y-%m-%d %H:%M:%S'),
-            simpleTimestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
-                                    .isoformat(),
-            contentOrig=raw_data.get('full_text', '') or raw_data['text'],
-            contentJaTrans=ja_translated_data,
-            contentEnTrans=en_translated_data,
-            retweetCount=raw_data['retweet_count'],
-            country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
-        ))
+            en_path = pathlib.Path(str(path).replace('orig', 'en_translated').replace('.json', '.txt'))
+            en_translated_data = ''
+            if en_path.exists():
+                with en_path.open() as f:
+                    en_translated_data = f.read().strip()
 
-        if len(buf) == 1000:
-            logger.debug('Write 1000 tweets.')
+            buf.append(Tweet(
+                _id=raw_data['id'],
+                name=raw_data['user']['name'],
+                verified=raw_data['user']['verified'],
+                username=raw_data['user']['screen_name'],
+                avatar=raw_data['user']['profile_image_url'],
+                timestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                                  .strftime('%Y-%m-%d %H:%M:%S'),
+                simpleTimestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                                        .strftime('%Y-%m-%d'),
+                contentOrig=raw_data.get('full_text', '') or raw_data['text'],
+                contentJaTrans=ja_translated_data,
+                contentEnTrans=en_translated_data,
+                retweetCount=raw_data['retweet_count'],
+                country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
+            ))
+
+            if len(buf) == 1000:
+                logger.debug('Write 1000 tweets.')
+                _ = db_handler.upsert_tweets(buf)
+                buf = []
+
+        if buf:
             _ = db_handler.upsert_tweets(buf)
-            buf = []
 
-    if buf:
-        _ = db_handler.upsert_tweets(buf)
+    add_tweets(datetime.today())
+    add_tweets(datetime.today() - timedelta(1))
 
 
 def update_stats():
@@ -192,6 +194,8 @@ def main():
     parser.add_argument('--update_sources', action='store_true', help='If true, update the source information.')
     parser.add_argument('--do_tweet', action='store_true', help='If true, randomly tweet a newly registered page.')
     args = parser.parse_args()
+
+    logging.basicConfig(level='DEBUG')
 
     if args.update_all or args.update_database:
         update_database(do_tweet=args.do_tweet)
