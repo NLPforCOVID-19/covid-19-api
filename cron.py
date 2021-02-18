@@ -96,7 +96,7 @@ def update_database(do_tweet: bool = False):
                     en_translated_data = f.read().strip()
 
             buf.append(Tweet(
-                _id=raw_data['id'],
+                _id=raw_data['id_str'],
                 name=raw_data['user']['name'],
                 verified=raw_data['user']['verified'],
                 username=raw_data['user']['screen_name'],
@@ -110,6 +110,7 @@ def update_database(do_tweet: bool = False):
                 contentEnTrans=en_translated_data,
                 retweetCount=raw_data['retweet_count'],
                 country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
+                lang=raw_data['lang']
             ))
 
             if len(buf) == 1000:

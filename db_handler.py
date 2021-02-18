@@ -35,17 +35,18 @@ class Tweet:
     timestamp: str
     simpleTimestamp: str
     contentOrig: str
+    contentJaTrans: str
+    contentEnTrans: str
     retweetCount: int
     country: str
-    contentJaTrans: str = ''
-    contentEnTrans: str = ''
+    lang: str
 
     def as_api_ret(self, lang: str):
         return {
-            'id': str(self._id),
+            'id': self._id,
             'contentTrans': self.contentJaTrans if lang == 'ja' else self.contentEnTrans,
             **{key: getattr(self, key) for key in
-               ['name', 'verified', 'username', 'avatar', 'timestamp', 'contentOrig']},
+               ['name', 'verified', 'username', 'avatar', 'timestamp', 'contentOrig', 'lang']},
         }
 
 
@@ -362,7 +363,7 @@ class DBHandler:
             if len(hits) == 0:
                 return []
             cur = self.tweet_coll.find(
-                filter={'_id': {'$in': [int(hit['_id']) for hit in hits]}},
+                filter={'_id': {'$in': [hit['_id'] for hit in hits]}},
                 sort=[('simpleTimestamp', DESCENDING)]
             )
             return [Tweet(**doc).as_api_ret(lang) for doc in cur]
