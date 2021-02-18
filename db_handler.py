@@ -42,7 +42,7 @@ class Tweet:
 
     def as_api_ret(self, lang: str):
         return {
-            'id': self._id,
+            'id': str(self._id),
             'contentTrans': self.contentJaTrans if lang == 'ja' else self.contentEnTrans,
             **{key: getattr(self, key) for key in
                ['name', 'verified', 'username', 'avatar', 'timestamp', 'contentOrig']},
