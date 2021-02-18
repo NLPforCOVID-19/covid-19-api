@@ -40,6 +40,14 @@ class Tweet:
     contentJaTrans: str = ''
     contentEnTrans: str = ''
 
+    def as_api_ret(self, lang: str):
+        return {
+            'id': self._id,
+            'contentTrans': self.contentJaTrans if lang == 'ja' else self.contentEnTrans,
+            **{key: getattr(self, key) for key in
+               ['name', 'verified', 'username', 'avatar', 'timestamp', 'contentOrig']},
+        }
+
 
 class DBHandler:
 
@@ -300,7 +308,7 @@ class DBHandler:
         elif etopic:
             reshaped_tweets = {}
             for ecountry in filter(lambda ecountry_: ecountry_ != 'all', ECOUNTRY_ICOUNTRIES_MAP.keys()):
-                if (etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP) and etopic not in ETOPIC_ITOPICS_MAP:
+                if etopic != 'search' and etopic not in ETOPIC_ITOPICS_MAP:
                     reshaped_tweets[ecountry] = []
                 else:
                     reshaped_tweets[ecountry] = self.get_tweets(etopic, ecountry, start, limit, lang, query)
@@ -332,18 +340,6 @@ class DBHandler:
         return reshaped_tweets
 
     def get_tweets(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str) -> List[dict]:
-        # Utility functions.
-        def reshape_tweet(doc: dict, lang: str) -> dict:
-            doc['id'] = doc['_id']
-            del doc['_id']
-            doc['contentTrans'] = doc['contentJaTrans'] if lang == 'ja' else doc['contentEnTrans']
-            del doc['contentJaTrans']
-            del doc['contentEnTrans']
-            del doc['simpleTimestamp']
-            del doc['retweetCount']
-            del doc['country']
-            return doc
-
         # Use ElasticSearch to search for articles.
         if etopic and etopic == 'search':
             icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
@@ -366,10 +362,10 @@ class DBHandler:
             if len(hits) == 0:
                 return []
             cur = self.tweet_coll.find(
-                filter={'$or': [{'id_': hit['_id']} for hit in hits]},
+                filter={'_id': {'$in': [int(hit['_id']) for hit in hits]}},
                 sort=[('simpleTimestamp', DESCENDING)]
             )
-            return [reshape_tweet(d, lang) for d in cur]
+            return [Tweet(**doc).as_api_ret(lang) for doc in cur]
 
         # Use MongoDB to search for articles.
         if etopic != 'all':
@@ -378,7 +374,7 @@ class DBHandler:
         filter_ = {'country': {'$in': icountries}}
         sort_ = [('simpleTimestamp', DESCENDING), ('retweetCount', DESCENDING)]
         cur = self.tweet_coll.find(filter=filter_, sort=sort_)
-        return [reshape_tweet(doc, lang) for doc in cur.skip(start).limit(limit)]
+        return [Tweet(**doc).as_api_ret(lang) for doc in cur.skip(start).limit(limit)]
 
     def update_page(
             self,
