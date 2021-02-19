@@ -108,7 +108,7 @@ def update_database(do_tweet: bool = False):
                 contentOrig=raw_data.get('full_text', '') or raw_data['text'],
                 contentJaTrans=ja_translated_data,
                 contentEnTrans=en_translated_data,
-                retweetCount=raw_data['retweet_count'],
+                retweetCount=meta_data['count'],
                 country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
                 lang=raw_data['lang']
             ))
