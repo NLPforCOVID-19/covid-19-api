@@ -46,7 +46,8 @@ class Tweet:
             'id': self._id,
             'contentTrans': self.contentJaTrans if lang == 'ja' else self.contentEnTrans,
             **{key: getattr(self, key) for key in
-               ['name', 'verified', 'username', 'avatar', 'timestamp', 'contentOrig', 'lang']},
+               ['name', 'verified', 'username', 'avatar', 'timestamp', 'contentOrig', 'lang', 'country',
+                'retweetCount']},
         }
 
 
@@ -373,7 +374,7 @@ class DBHandler:
             return []  # This is because tweets are not categorized by topics at the moment.
         icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
         filter_ = {'country': {'$in': icountries}}
-        sort_ = [('simpleTimestamp', DESCENDING), ('retweetCount', DESCENDING)]
+        sort_ = [('simpleTimestamp', DESCENDING), ('retweetCount', DESCENDING), ('timestamp', DESCENDING)]
         cur = self.tweet_coll.find(filter=filter_, sort=sort_)
         return [Tweet(**doc).as_api_ret(lang) for doc in cur.skip(start).limit(limit)]
 
