@@ -111,3 +111,6 @@ config.json
 
 # data
 data/
+
+# cache
+cache/
