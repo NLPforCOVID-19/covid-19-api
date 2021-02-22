@@ -1,4 +1,4 @@
-name: Python Style Checker
+name: Python Coding Style
 
 on:
   pull_request

@@ -8,7 +8,6 @@ except ModuleNotFoundError:
     pass
 
 config = {
-    'activator': os.getenv('ACTIVATOR'),
     'password': os.getenv('PASSWORD'),
     'log_handler': {
         'log_dir': os.getenv('LOG_HANDLER_LOG_DIR'),

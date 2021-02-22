@@ -23,7 +23,6 @@ jobs:
           echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Configure
         env:
-          ACTIVATOR: ${{ secrets.ACTIVATOR }}
           PASSWORD: ${{ secrets.PASSWORD }}
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           LOG_HANDLER_LOG_DIR: ${{ secrets.LOG_HANDLER_LOG_DIR }}
