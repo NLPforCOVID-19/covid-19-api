@@ -3,7 +3,7 @@ import json
 import itertools
 
 SCORE_THRESHOLD = 0.7
-RUMOR_THRESHOLD = 0.85
+RUMOR_THRESHOLD = 0.92
 USEFUL_THRESHOLD = 0.9
 
 TOPICS = [
