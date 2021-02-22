@@ -285,9 +285,6 @@ Run `python conf.py`.
 Before running this script, set the following environment variables.
 
 ```dotenv
-# This is used when the server is executed as a CGI script
-ACTIVATOR="<path-to-virtual-env>/bin/activate_this.py"
-
 # Password
 PASSWORD=""
 
