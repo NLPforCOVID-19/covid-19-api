@@ -6,45 +6,54 @@ import random
 import shutil
 import tempfile
 import time
+import pathlib
+from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 
 import pandas as pd
+from fcache.cache import FileCache
 
-from db_handler import DBHandler, Status
+from db_handler import DBHandler, Status, Tweet
 from log_handler import LogHandler
 from meta_data_handler import MetaDataHandler
 from twitter_handler import TwitterHandler
 from util import load_config, COUNTRIES, ECOUNTRY_ICOUNTRIES_MAP
 
 logger = logging.getLogger(__file__)
-logging.basicConfig(level='DEBUG')
 
 cfg = load_config()
 
+meta_data_handler = MetaDataHandler()
+db_handler = DBHandler(**cfg['db_handler'])
+log_handler = LogHandler(**cfg['log_handler'])
+twitter_handler = TwitterHandler(**cfg['twitter_handler'])
+
 
 def update_database(do_tweet: bool = False):
-    db_handler = DBHandler(**cfg['db_handler'])
-    log_handler = LogHandler(**cfg['log_handler'])
-
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
+    offset_cache = FileCache('offset_cache', flag='cs', app_cache_dir='./')
+    offset = offset_cache.get("offset", 0)
     maybe_tweeted_ds = []
     with open(data_path, mode='r', encoding='utf-8') as f:
+        f.seek(offset)
         for line in f:
             d = db_handler.upsert_page(json.loads(line))
             if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
                 maybe_tweeted_ds.append(d)
-    num_docs = db_handler.collection.count_documents({})
+        else:
+            offset_cache["offset"] = f.tell()
+    num_docs = db_handler.article_coll.count_documents({})
     log_handler.extend_page_number_log([f'{time.asctime()}:The number of pages is {num_docs}.'])
 
     logger.debug('Add manually checked pages.')
     for line in log_handler.iterate_topic_check_log():
         log = json.loads(line)
-        existing_page = db_handler.collection.find_one({'page.url': log['url']})
+        existing_page = db_handler.article_coll.find_one({'page.url': log['url']})
         if not existing_page:
             continue
-        db_handler.collection.update_one(
+        db_handler.article_coll.update_one(
             {'page.url': log['url']},
             {'$set': {
                 'page.is_about_COVID-19': log['is_about_COVID-19'],
@@ -59,7 +68,6 @@ def update_database(do_tweet: bool = False):
 
     logger.debug('Tweet a useful new page.')
     if do_tweet:
-        twitter_handler = TwitterHandler(**cfg['twitter_handler'])
         if not maybe_tweeted_ds:
             logger.debug('No such pages. Skip to tweet a page.')
             return
@@ -67,11 +75,63 @@ def update_database(do_tweet: bool = False):
         text = twitter_handler.create_text(d)
         twitter_handler.post(text)
 
+    logger.debug('Add tweets posted in the last 2 days.')
+    data_path = cfg['data']['tweet_list']
+
+    def add_tweets(dt):
+        buf = []
+        glob_pat = f'*/orig/{dt.strftime("%Y")}/{dt.strftime("%m")}/{dt.strftime("%d")}/*/*.json'
+        for path in pathlib.Path(data_path).glob(glob_pat):
+            with path.open() as f:
+                raw_data = json.load(f)
+
+            meta_path = path.parent.joinpath(f'{path.stem}.metadata')
+            with meta_path.open() as f:
+                meta_data = json.load(f)
+
+            ja_path = pathlib.Path(str(path).replace('orig', 'ja_translated').replace('.json', '.txt'))
+            ja_translated_data = ''
+            if ja_path.exists():
+                with ja_path.open() as f:
+                    ja_translated_data = f.read().strip()
+
+            en_path = pathlib.Path(str(path).replace('orig', 'en_translated').replace('.json', '.txt'))
+            en_translated_data = ''
+            if en_path.exists():
+                with en_path.open() as f:
+                    en_translated_data = f.read().strip()
+
+            buf.append(Tweet(
+                _id=raw_data['id_str'],
+                name=raw_data['user']['name'],
+                verified=raw_data['user']['verified'],
+                username=raw_data['user']['screen_name'],
+                avatar=raw_data['user']['profile_image_url'],
+                timestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                                  .strftime('%Y-%m-%d %H:%M:%S'),
+                simpleTimestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
+                                        .strftime('%Y-%m-%d'),
+                contentOrig=raw_data.get('full_text', '') or raw_data['text'],
+                contentJaTrans=ja_translated_data,
+                contentEnTrans=en_translated_data,
+                retweetCount=meta_data['count'],
+                country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
+                lang=raw_data['lang']
+            ))
+
+            if len(buf) == 1000:
+                logger.debug('Write 1000 tweets.')
+                _ = db_handler.upsert_tweets(buf)
+                buf = []
+
+        if buf:
+            _ = db_handler.upsert_tweets(buf)
+
+    add_tweets(datetime.today())
+    add_tweets(datetime.today() - timedelta(1))
+
 
 def update_stats():
-    meta_data_handler = MetaDataHandler()
-    log_handler = LogHandler(**cfg['log_handler'])
-
     logger.debug('Update stats.')
     base = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data' \
            '/csse_covid_19_time_series/ '
@@ -116,9 +176,6 @@ def update_stats():
 
 
 def update_sources():
-    meta_data_handler = MetaDataHandler()
-    log_handler = LogHandler(**cfg['log_handler'])
-
     logger.debug('Update sources.')
     data_path = cfg['data']['site_list']
     with open(data_path) as f:
@@ -144,6 +201,8 @@ def main():
     parser.add_argument('--update_sources', action='store_true', help='If true, update the source information.')
     parser.add_argument('--do_tweet', action='store_true', help='If true, randomly tweet a newly registered page.')
     args = parser.parse_args()
+
+    logging.basicConfig(level='DEBUG')
 
     if args.update_all or args.update_database:
         update_database(do_tweet=args.do_tweet)

@@ -8,7 +8,6 @@ except ModuleNotFoundError:
     pass
 
 config = {
-    'activator': os.getenv('ACTIVATOR'),
     'password': os.getenv('PASSWORD'),
     'log_handler': {
         'log_dir': os.getenv('LOG_HANDLER_LOG_DIR'),
@@ -20,7 +19,8 @@ config = {
         'mongo_host': os.getenv('DB_HANDLER_MONGO_HOST'),
         'mongo_port': int(os.getenv('DB_HANDLER_MONGO_PORT')),
         'mongo_db_name': os.getenv('DB_HANDLER_MONGO_DB_NAME'),
-        'mongo_collection_name': os.getenv('DB_HANDLER_MONGO_COLLECTION_NAME'),
+        'mongo_article_collection_name': os.getenv('DB_HANDLER_MONGO_ARTICLE_COLLECTION_NAME'),
+        'mongo_tweet_collection_name': os.getenv('DB_HANDLER_MONGO_TWEET_COLLECTION_NAME'),
         'es_host': os.getenv('DB_HANDLER_ES_HOST'),
         'es_port': int(os.getenv('DB_HANDLER_ES_PORT'))
     },
@@ -40,6 +40,7 @@ config = {
     ],
     'data': {
         'article_list': os.getenv('ARTICLE_LIST'),
+        'tweet_list': os.getenv('TWEET_LIST'),
         'site_list': os.getenv('SITE_LIST')
     }
 }

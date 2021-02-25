@@ -23,14 +23,14 @@ jobs:
           echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Configure
         env:
-          ACTIVATOR: ${{ secrets.ACTIVATOR }}
           PASSWORD: ${{ secrets.PASSWORD }}
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           LOG_HANDLER_LOG_DIR: ${{ secrets.LOG_HANDLER_LOG_DIR }}
           DB_HANDLER_MONGO_HOST: ${{ secrets.DB_HANDLER_MONGO_HOST }}
           DB_HANDLER_MONGO_PORT: ${{ secrets.DB_HANDLER_MONGO_PORT }}
           DB_HANDLER_MONGO_DB_NAME: ${{ secrets.DB_HANDLER_MONGO_DB_NAME }}
-          DB_HANDLER_MONGO_COLLECTION_NAME: ${{ secrets.DB_HANDLER_MONGO_COLLECTION_NAME }}
+          DB_HANDLER_MONGO_ARTICLE_COLLECTION_NAME: ${{ secrets.DB_HANDLER_MONGO_ARTICLE_COLLECTION_NAME }}
+          DB_HANDLER_MONGO_TWEET_COLLECTION_NAME: ${{ secrets.DB_HANDLER_MONGO_TWEET_COLLECTION_NAME }}
           DB_HANDLER_ES_HOST: ${{ secrets.DB_HANDLER_ES_HOST }}
           DB_HANDLER_ES_PORT: ${{ secrets.DB_HANDLER_ES_PORT }}
           TWITTER_HANDLER_OAUTH_TOKEN: ${{ secrets.TWITTER_HANDLER_OAUTH_TOKEN }}
@@ -40,6 +40,7 @@ jobs:
           SLACK_HANDLER_ACCESS_TOKENS: ${{ secrets.SLACK_HANDLER_ACCESS_TOKENS }}
           SLACK_HANDLER_APP_CHANNELS: ${{ secrets.SLACK_HANDLER_APP_CHANNELS }}
           ARTICLE_LIST: ${{ secrets.ARTICLE_LIST }}
+          TWEET_LIST: ${{ secrets.TWEET_LIST }}
           SITE_LIST: ${{ secrets.SITE_LIST }}
         run: |
           python conf.py
