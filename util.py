@@ -3,7 +3,7 @@ import json
 import itertools
 
 SCORE_THRESHOLD = 0.7
-RUMOR_THRESHOLD = 0.85
+RUMOR_THRESHOLD = 0.92
 USEFUL_THRESHOLD = 0.9
 
 TOPICS = [
@@ -148,7 +148,7 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     'cn': ['cn'],
     'us': ['us', 'us_other'],
     'eur': ['eur', 'eu', 'fr', 'gb', 'es', 'de', 'eur_other'],
-    'asia': ['asia', 'kr', 'in', 'np', 'my', 'sg', 'asia_other'],
+    'asia': ['asia', 'kr', 'id', 'in', 'np', 'my', 'sg', 'asia_other'],
     'sa': ['sa', 'br', 'sa_other'],
     'oceania': ['au', 'oceania_other'],
     'africa': ['za', 'africa_other'],
