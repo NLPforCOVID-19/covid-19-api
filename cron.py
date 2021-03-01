@@ -1,3 +1,4 @@
+import os
 import argparse
 import collections
 import json
@@ -12,7 +13,6 @@ import urllib.parse
 import urllib.request
 
 import pandas as pd
-from fcache.cache import FileCache
 
 from db_handler import DBHandler, Status, Tweet
 from log_handler import LogHandler
@@ -33,17 +33,23 @@ twitter_handler = TwitterHandler(**cfg['twitter_handler'])
 def update_database(do_tweet: bool = False):
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
-    offset_cache = FileCache('offset_cache', flag='cs', app_cache_dir='./')
-    offset = offset_cache.get("offset", 0)
+    cache_file = './.cache'
+    if os.path.exists(cache_file):
+        with open(cache_file) as f:
+            offset = int(f.read().strip())
+    else:
+        offset = 0
     maybe_tweeted_ds = []
     with open(data_path, mode='r', encoding='utf-8') as f:
-        f.seek(offset)
-        for line in f:
+        for line_idx, line in enumerate(f):
+            if line_idx < offset:
+                continue
             d = db_handler.upsert_page(json.loads(line))
             if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
                 maybe_tweeted_ds.append(d)
-        else:
-            offset_cache["offset"] = f.tell()
+        line_num = line_idx
+    with open(cache_file, 'w') as f:
+        f.write(f'{line_num}')
     num_docs = db_handler.article_coll.count_documents({})
     log_handler.extend_page_number_log([f'{time.asctime()}:The number of pages is {num_docs}.'])
 
