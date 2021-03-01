@@ -297,7 +297,7 @@ class DBHandler:
         filter_ = {'$and': filters}
         sort_ = get_sort(itopics)
         cur = self.article_coll.find(filter=filter_, sort=sort_)
-        reshaped_articles = [reshape_article(doc['page'], lang) for doc in cur.skip(start).limit(limit)]
+        reshaped_articles = [reshape_article(doc['page']) for doc in cur.skip(start).limit(limit)]
         return reshaped_articles
 
     def get_tweets_sorted_by_topic(self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str):
