@@ -33,7 +33,7 @@ twitter_handler = TwitterHandler(**cfg['twitter_handler'])
 def update_database(do_tweet: bool = False):
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
-    cache_file = './.cache'
+    cache_file = f"{cfg['log_handler']['log_dir']}/offset.txt"
     if os.path.exists(cache_file):
         with open(cache_file) as f:
             offset = int(f.read().strip())
@@ -84,7 +84,7 @@ def update_database(do_tweet: bool = False):
     logger.debug('Add tweets posted in the last 2 days.')
     data_path = cfg['data']['tweet_list']
 
-    def add_tweets(dt):
+    def add_tweets(dt: datetime.date):
         buf = []
         glob_pat = f'*/orig/{dt.strftime("%Y")}/{dt.strftime("%m")}/{dt.strftime("%d")}/*/*.json'
         for path in pathlib.Path(data_path).glob(glob_pat):
@@ -121,7 +121,10 @@ def update_database(do_tweet: bool = False):
                 contentJaTrans=ja_translated_data,
                 contentEnTrans=en_translated_data,
                 retweetCount=meta_data['count'],
-                country=meta_data['country_code'].lower() if meta_data['country_code'] else 'unk',
+                # When the language is "ja", "country_code" is overwritten as "jp".
+                country='jp' if raw_data['lang'] == 'ja'
+                        else meta_data['country_code'].lower() if meta_data['country_code']
+                        else 'unk',
                 lang=raw_data['lang']
             ))
 
