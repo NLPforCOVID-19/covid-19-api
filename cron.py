@@ -33,7 +33,7 @@ twitter_handler = TwitterHandler(**cfg['twitter_handler'])
 def update_database(do_tweet: bool = False):
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
-    cache_file = './.cache'
+    cache_file = f"{cfg['log_handler']['log_dir']}/offset.txt"
     if os.path.exists(cache_file):
         with open(cache_file) as f:
             offset = int(f.read().strip())
