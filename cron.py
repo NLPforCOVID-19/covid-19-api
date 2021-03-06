@@ -33,12 +33,23 @@ twitter_handler = TwitterHandler(**cfg['twitter_handler'])
 def update_database(do_tweet: bool = False):
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
+    cache_file = f"{cfg['log_handler']['log_dir']}/offset.txt"
+    if os.path.exists(cache_file):
+        with open(cache_file) as f:
+            offset = int(f.read().strip())
+    else:
+        offset = 0
     maybe_tweeted_ds = []
     with open(data_path, mode='r', encoding='utf-8') as f:
-        for line in f:
+        for line_idx, line in enumerate(f):
+            if line_idx < offset:
+                continue
             d = db_handler.upsert_page(json.loads(line))
             if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
                 maybe_tweeted_ds.append(d)
+        line_num = line_idx
+    with open(cache_file, 'w') as f:
+        f.write(f'{line_num}')
     num_docs = db_handler.article_coll.count_documents({})
     log_handler.extend_page_number_log([f'{time.asctime()}:The number of pages is {num_docs}.'])
 
