@@ -98,7 +98,7 @@ def update_database(do_tweet: bool = False):
             ja_path = pathlib.Path(str(path).replace('orig', 'ja_translated').replace('.json', '.txt'))
             ja_translated_data = ''
             if ja_path.exists():
-                with ja_path.open() as f:
+                with ja_path.open(encoding='utf-8') as f:
                     ja_translated_data = f.read().strip()
 
             en_path = pathlib.Path(str(path).replace('orig', 'en_translated').replace('.json', '.txt'))
