@@ -112,7 +112,7 @@ def update_database(do_tweet: bool = False):
                 name=raw_data['user']['name'],
                 verified=raw_data['user']['verified'],
                 username=raw_data['user']['screen_name'],
-                avatar=raw_data['user']['profile_image_url'],
+                avatar=raw_data['user']['profile_image_url_https'],
                 timestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
                                   .strftime('%Y-%m-%d %H:%M:%S'),
                 simpleTimestamp=datetime.strptime(raw_data['created_at'], '%a %b %d %H:%M:%S +0000 %Y')
