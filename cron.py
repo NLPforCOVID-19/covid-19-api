@@ -33,12 +33,13 @@ twitter_handler = TwitterHandler(**cfg['twitter_handler'])
 def update_database(do_tweet: bool = False):
     logger.debug('Add automatically categorized pages.')
     data_path = cfg['data']['article_list']
-    cache_file = f"{cfg['log_handler']['log_dir']}/offset.txt"
+    cache_file = f'{cfg["log_handler"]["log_dir"]}/offset.txt'
     if os.path.exists(cache_file):
         with open(cache_file) as f:
             offset = int(f.read().strip())
     else:
         offset = 0
+    logger.debug(f'Skip the first {offset} lines.')
     maybe_tweeted_ds = []
     with open(data_path, mode='r', encoding='utf-8') as f:
         for line_idx, line in enumerate(f):
@@ -87,7 +88,9 @@ def update_database(do_tweet: bool = False):
     def add_tweets(dt: datetime.date):
         buf = []
         glob_pat = f'*/orig/{dt.strftime("%Y")}/{dt.strftime("%m")}/{dt.strftime("%d")}/*/*.json'
-        for path in pathlib.Path(data_path).glob(glob_pat):
+        paths = list(pathlib.Path(data_path).glob(glob_pat))
+        logger.debug(f'Number of tweets: {len(paths)}')
+        for path in paths:
             with path.open() as f:
                 raw_data = json.load(f)
 
