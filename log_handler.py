@@ -5,6 +5,7 @@ from typing import List
 TOPIC_CHECK_LOG = 'category_check.txt'
 FEEDBACK_LOG = 'feedback.txt'
 PAGE_NUMBER_LOG = 'update.txt'
+TWEET_NUMBER_LOG = 'tweet.txt'
 
 
 class LogHandler:
@@ -19,6 +20,9 @@ class LogHandler:
         self.extend_log(os.path.join(self.log_dir, FEEDBACK_LOG), lines)
 
     def extend_page_number_log(self, lines: List[str]):
+        self.extend_log(os.path.join(self.log_dir, PAGE_NUMBER_LOG), lines)
+
+    def extend_tweet_number_log(self, lines: List[str]):
         self.extend_log(os.path.join(self.log_dir, PAGE_NUMBER_LOG), lines)
 
     @staticmethod
