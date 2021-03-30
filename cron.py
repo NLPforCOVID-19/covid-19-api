@@ -145,6 +145,9 @@ def update_database(do_tweet: bool = False):
     add_tweets(datetime.today())
     add_tweets(datetime.today() - timedelta(1))
 
+    num_tweets = db_handler.tweet_coll.count_documents({})
+    log_handler.extend_tweet_number_log([f'{time.asctime()}:The number of tweets is {num_tweets}.'])
+
 
 def update_stats():
     logger.debug('Update stats.')
