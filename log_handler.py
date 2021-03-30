@@ -23,7 +23,7 @@ class LogHandler:
         self.extend_log(os.path.join(self.log_dir, PAGE_NUMBER_LOG), lines)
 
     def extend_tweet_number_log(self, lines: List[str]):
-        self.extend_log(os.path.join(self.log_dir, PAGE_NUMBER_LOG), lines)
+        self.extend_log(os.path.join(self.log_dir, TWEET_NUMBER_LOG), lines)
 
     @staticmethod
     def extend_log(path: str, lines: List[str]):
