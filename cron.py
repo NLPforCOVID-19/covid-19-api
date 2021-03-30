@@ -41,11 +41,14 @@ def update_database(do_tweet: bool = False):
         offset = 0
     logger.debug(f'Skip the first {offset} lines.')
     maybe_tweeted_ds = []
-    with open(data_path, mode='r', encoding='utf-8') as f:
+    with open(data_path, mode='r', encoding='utf-8', errors='ignore') as f:
         for line_idx, line in enumerate(f):
             if line_idx < offset:
                 continue
-            d = db_handler.upsert_page(json.loads(line))
+            try:
+                d = db_handler.upsert_page(json.loads(line))
+            except json.decoder.JSONDecodeError:
+                continue
             if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
                 maybe_tweeted_ds.append(d)
         line_num = line_idx
