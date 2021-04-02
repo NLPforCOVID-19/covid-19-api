@@ -12,10 +12,7 @@ from util import (
     ETOPIC_ITOPICS_MAP,
     ECOUNTRY_ICOUNTRIES_MAP,
     ETOPIC_TRANS_MAP,
-    ECOUNTRY_TRANS_MAP,
-    SCORE_THRESHOLD,
-    RUMOR_THRESHOLD,
-    USEFUL_THRESHOLD
+    ECOUNTRY_TRANS_MAP
 )
 
 
@@ -71,100 +68,16 @@ class DBHandler:
 
     def upsert_page(self, document: dict) -> Optional[Dict[str, str]]:
         """Add a page to the database. If the page has already been registered, update the page."""
-        if any((
-                not document['orig']['title'],
-                not document['ja_translated']['title'],
-                not document['en_translated']['title'],
-        )):
-            return
-
-        def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
-            # Find a general snippet.
-            general_snippet = ''
-            for itopic in ITOPICS:
-                if itopic in snippets:
-                    general_snippet = snippets[itopic][0] if snippets[itopic] else ''
-                    break
-
-            # Reshape snippets.
-            reshaped = {}
-            for itopic in ITOPICS:
-                snippets_about_topic = snippets.get(itopic, [])
-                if snippets_about_topic and snippets_about_topic[0]:
-                    reshaped[itopic] = snippets_about_topic[0].strip()
-                elif general_snippet:
-                    reshaped[itopic] = general_snippet
-                else:
-                    reshaped[itopic] = ''
-            return reshaped
-
-        is_about_covid_19: int = document['classes']['is_about_COVID-19']
-        country: str = document['country']
-        orig: Dict[str, str] = {
-            'title': document['orig']['title'].strip(),
-            'timestamp': document['orig']['timestamp'],
-            'simple_timestamp': datetime.fromisoformat(document['orig']['timestamp']).date().isoformat(),
-        }
-        ja_translated: Dict[str, str] = {
-            'title': document['ja_translated']['title'].strip(),
-            'timestamp': document['ja_translated']['timestamp'],
-        }
-        en_translated: Dict[str, str] = {
-            'title': document['en_translated']['title'].strip(),
-            'timestamp': document['en_translated']['timestamp'],
-        }
-        url: str = document['url']
-        topics_to_score: Dict[str, float] = {
-            key: value for key, value in document['classes_bert'].items() if key in ITOPICS and value > 0.5
-        }
-        topics: Dict[str, float] = dict()
-        for idx, (topic, score) in enumerate(sorted(topics_to_score.items(), key=lambda x: x[1], reverse=True)):
-            if idx == 0 or score > SCORE_THRESHOLD:
-                topics[topic] = float(score)
-            else:
-                break
-        ja_snippets = reshape_snippets(document['snippets'])
-        en_snippets = reshape_snippets(document['snippets_en'])
-
-        is_checked = 0
-        is_useful = 1 if document['classes_bert']['is_useful'] > USEFUL_THRESHOLD else 0
-        is_clear = document['classes']['is_clear']
-        is_about_false_rumor = 1 if document['classes_bert']['is_about_false_rumor'] > RUMOR_THRESHOLD else 0
-
-        domain = document.get('domain', '')
-        ja_domain_label = document.get('domain_label', '')
-        en_domain_label = document.get('domain_label_en', '')
-        document_ = {
-            'country': country,
-            'displayed_country': country,
-            'orig': orig,
-            'ja_translated': ja_translated,
-            'en_translated': en_translated,
-            'url': url,
-            'topics': topics,
-            'ja_snippets': ja_snippets,
-            'en_snippets': en_snippets,
-            'is_checked': is_checked,
-            'is_hidden': 0,
-            'is_about_COVID-19': is_about_covid_19,
-            'is_useful': is_useful,
-            'is_clear': is_clear,
-            'is_about_false_rumor': is_about_false_rumor,
-            'domain': domain,
-            'ja_domain_label': ja_domain_label,
-            'en_domain_label': en_domain_label
-        }
-
-        existing_page = self.article_coll.find_one({'page.url': url})
-        if existing_page and orig['timestamp'] > existing_page['page']['orig']['timestamp']:
-            self.article_coll.update_one({'page.url': url}, {'$set': {'page': document_}}, upsert=True)
-            document_['status'] = Status.UPDATED
+        existing_page = self.article_coll.find_one({'page.url': document['url']})
+        if existing_page and document['orig']['timestamp'] > existing_page['page']['orig']['timestamp']:
+            self.article_coll.update_one({'page.url': document['url']}, {'$set': {'page': document}}, upsert=True)
+            document['status'] = Status.UPDATED
         elif not existing_page:
-            self.article_coll.insert_one({'page': document_})
-            document_['status'] = Status.INSERTED
+            self.article_coll.insert_one({'page': document})
+            document['status'] = Status.INSERTED
         else:
-            document_['status'] = Status.IGNORED
-        return document_
+            document['status'] = Status.IGNORED
+        return document
 
     def upsert_tweets(self, tweets: List[Tweet]) -> Status:
         upserts = [UpdateOne({'_id': tweet._id}, {'$setOnInsert': asdict(tweet)}, upsert=True) for tweet in tweets]

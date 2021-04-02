@@ -1,42 +1,42 @@
 [[package]]
-name = "appdirs"
-version = "1.4.4"
+category = "main"
 description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "main"
+name = "appdirs"
 optional = false
 python-versions = "*"
+version = "1.4.4"
 
 [[package]]
-name = "certifi"
-version = "2020.11.8"
+category = "main"
 description = "Python package for providing Mozilla's CA Bundle."
-category = "main"
+name = "certifi"
 optional = false
 python-versions = "*"
+version = "2020.11.8"
 
 [[package]]
-name = "chardet"
-version = "3.0.4"
+category = "main"
 description = "Universal encoding detector for Python 2 and 3"
-category = "main"
+name = "chardet"
 optional = false
 python-versions = "*"
+version = "3.0.4"
 
 [[package]]
-name = "click"
-version = "7.1.2"
-description = "Composable command line interface toolkit"
 category = "main"
+description = "Composable command line interface toolkit"
+name = "click"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "7.1.2"
 
 [[package]]
-name = "elasticsearch"
-version = "7.10.0"
-description = "Python client for Elasticsearch"
 category = "main"
+description = "Python client for Elasticsearch"
+name = "elasticsearch"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4"
+version = "7.10.0"
 
 [package.dependencies]
 certifi = "*"
@@ -49,29 +49,29 @@ docs = ["sphinx (<1.7)", "sphinx-rtd-theme"]
 requests = ["requests (>=2.4.0,<3.0.0)"]
 
 [[package]]
-name = "fcache"
-version = "0.4.7"
-description = "a dictionary-like, file-based cache module for Python"
 category = "main"
+description = "a dictionary-like, file-based cache module for Python"
+name = "fcache"
 optional = false
 python-versions = "*"
+version = "0.4.7"
 
 [package.dependencies]
 appdirs = "*"
 
 [[package]]
-name = "flask"
-version = "1.1.2"
-description = "A simple framework for building complex web applications."
 category = "main"
+description = "A simple framework for building complex web applications."
+name = "flask"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "1.1.2"
 
 [package.dependencies]
-click = ">=5.1"
-itsdangerous = ">=0.24"
 Jinja2 = ">=2.10.1"
 Werkzeug = ">=0.15"
+click = ">=5.1"
+itsdangerous = ">=0.24"
 
 [package.extras]
 dev = ["pytest", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-issues"]
@@ -79,24 +79,27 @@ docs = ["sphinx", "pallets-sphinx-themes", "sphinxcontrib-log-cabinet", "sphinx-
 dotenv = ["python-dotenv"]
 
 [[package]]
-name = "flask-cors"
-version = "3.0.9"
-description = "A Flask extension adding a decorator for CORS support"
 category = "main"
+description = "A Flask extension adding a decorator for CORS support"
+name = "flask-cors"
 optional = false
 python-versions = "*"
+version = "3.0.9"
 
 [package.dependencies]
 Flask = ">=0.9"
 Six = "*"
 
 [[package]]
-name = "gunicorn"
-version = "20.0.4"
-description = "WSGI HTTP Server for UNIX"
 category = "main"
+description = "WSGI HTTP Server for UNIX"
+name = "gunicorn"
 optional = false
 python-versions = ">=3.4"
+version = "20.0.4"
+
+[package.dependencies]
+setuptools = ">=3.0"
 
 [package.extras]
 eventlet = ["eventlet (>=0.9.7)"]
@@ -105,28 +108,28 @@ setproctitle = ["setproctitle"]
 tornado = ["tornado (>=0.2)"]
 
 [[package]]
-name = "idna"
-version = "2.10"
+category = "main"
 description = "Internationalized Domain Names in Applications (IDNA)"
-category = "main"
+name = "idna"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "2.10"
 
 [[package]]
-name = "itsdangerous"
-version = "1.1.0"
+category = "main"
 description = "Various helpers to pass data to untrusted environments and back."
-category = "main"
+name = "itsdangerous"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "1.1.0"
 
 [[package]]
-name = "jinja2"
-version = "2.11.2"
-description = "A very fast and expressive template engine."
 category = "main"
+description = "A very fast and expressive template engine."
+name = "jinja2"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "2.11.2"
 
 [package.dependencies]
 MarkupSafe = ">=0.23"
@@ -135,36 +138,47 @@ MarkupSafe = ">=0.23"
 i18n = ["Babel (>=0.8)"]
 
 [[package]]
-name = "markupsafe"
-version = "1.1.1"
-description = "Safely add untrusted strings to HTML/XML markup."
 category = "main"
-optional = false
-python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
-
-[[package]]
-name = "mojimoji"
-version = "0.0.11"
-description = "A fast converter between Japanese hankaku and zenkaku characters"
-category = "main"
+description = "Language detection library ported from Google's language-detection."
+name = "langdetect"
 optional = false
 python-versions = "*"
+version = "1.0.8"
+
+[package.dependencies]
+six = "*"
 
 [[package]]
-name = "numpy"
-version = "1.19.4"
-description = "NumPy is the fundamental package for array computing with Python."
 category = "main"
+description = "Safely add untrusted strings to HTML/XML markup."
+name = "markupsafe"
+optional = false
+python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
+version = "1.1.1"
+
+[[package]]
+category = "main"
+description = "A fast converter between Japanese hankaku and zenkaku characters"
+name = "mojimoji"
+optional = false
+python-versions = "*"
+version = "0.0.11"
+
+[[package]]
+category = "main"
+description = "NumPy is the fundamental package for array computing with Python."
+name = "numpy"
 optional = false
 python-versions = ">=3.6"
+version = "1.19.4"
 
 [[package]]
-name = "pandas"
-version = "1.1.4"
-description = "Powerful data structures for data analysis, time series, and statistics"
 category = "main"
+description = "Powerful data structures for data analysis, time series, and statistics"
+name = "pandas"
 optional = false
 python-versions = ">=3.6.1"
+version = "1.1.4"
 
 [package.dependencies]
 numpy = ">=1.15.4"
@@ -175,12 +189,12 @@ pytz = ">=2017.2"
 test = ["pytest (>=4.0.2)", "pytest-xdist", "hypothesis (>=3.58)"]
 
 [[package]]
-name = "pymongo"
-version = "3.11.0"
-description = "Python driver for MongoDB <http://www.mongodb.org>"
 category = "main"
+description = "Python driver for MongoDB <http://www.mongodb.org>"
+name = "pymongo"
 optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
+version = "3.11.0"
 
 [package.extras]
 aws = ["pymongo-auth-aws (<2.0.0)"]
@@ -193,42 +207,42 @@ tls = ["ipaddress"]
 zstd = ["zstandard"]
 
 [[package]]
-name = "python-dateutil"
-version = "2.8.1"
-description = "Extensions to the standard Python datetime module"
 category = "main"
+description = "Extensions to the standard Python datetime module"
+name = "python-dateutil"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+version = "2.8.1"
 
 [package.dependencies]
 six = ">=1.5"
 
 [[package]]
-name = "python-dotenv"
-version = "0.15.0"
-description = "Add .env support to your django/flask apps in development and deployments"
 category = "main"
+description = "Add .env support to your django/flask apps in development and deployments"
+name = "python-dotenv"
 optional = false
 python-versions = "*"
+version = "0.15.0"
 
 [package.extras]
 cli = ["click (>=5.0)"]
 
 [[package]]
-name = "pytz"
-version = "2020.4"
-description = "World timezone definitions, modern and historical"
 category = "main"
+description = "World timezone definitions, modern and historical"
+name = "pytz"
 optional = false
 python-versions = "*"
+version = "2020.4"
 
 [[package]]
-name = "requests"
-version = "2.25.0"
-description = "Python HTTP for Humans."
 category = "main"
+description = "Python HTTP for Humans."
+name = "requests"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "2.25.0"
 
 [package.dependencies]
 certifi = ">=2017.4.17"
@@ -238,53 +252,52 @@ urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
-socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
+socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7)", "win-inet-pton"]
 
 [[package]]
-name = "six"
-version = "1.15.0"
-description = "Python 2 and 3 compatibility utilities"
 category = "main"
+description = "Python 2 and 3 compatibility utilities"
+name = "six"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+version = "1.15.0"
 
 [[package]]
-name = "twitter"
-version = "1.18.0"
-description = "An API and command-line toolset for Twitter (twitter.com)"
 category = "main"
+description = "An API and command-line toolset for Twitter (twitter.com)"
+name = "twitter"
 optional = false
 python-versions = "*"
+version = "1.18.0"
 
 [[package]]
-name = "urllib3"
-version = "1.26.2"
-description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "main"
+description = "HTTP library with thread-safe connection pooling, file post, and more."
+name = "urllib3"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+version = "1.26.2"
 
 [package.extras]
 brotli = ["brotlipy (>=0.6.0)"]
 secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "certifi", "ipaddress"]
-socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
+socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7,<2.0)"]
 
 [[package]]
-name = "werkzeug"
-version = "1.0.1"
-description = "The comprehensive WSGI web application library."
 category = "main"
+description = "The comprehensive WSGI web application library."
+name = "werkzeug"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+version = "1.0.1"
 
 [package.extras]
 dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinx-issues"]
 watchdog = ["watchdog"]
 
 [metadata]
-lock-version = "1.1"
+content-hash = "5755e59313b2cd25bd5a9ccef05a58c2a593c70b3b8efbb41fcb9a2ab02f812e"
 python-versions = "^3.7"
-content-hash = "a3b0074eaa32f180f5b42a204c771441b4b1dac699ef7e5acd0f366e0792019e"
 
 [metadata.files]
 appdirs = [
@@ -334,6 +347,10 @@ itsdangerous = [
 jinja2 = [
     {file = "Jinja2-2.11.2-py2.py3-none-any.whl", hash = "sha256:f0a4641d3cf955324a89c04f3d94663aa4d638abe8f733ecd3582848e1c37035"},
     {file = "Jinja2-2.11.2.tar.gz", hash = "sha256:89aab215427ef59c34ad58735269eb58b1a5808103067f7bb9d5836c651b3bb0"},
+]
+langdetect = [
+    {file = "langdetect-1.0.8-py2-none-any.whl", hash = "sha256:f37495e63607865e47deed08d78f7f8e58172658216ff954b2f14671bcd87740"},
+    {file = "langdetect-1.0.8.tar.gz", hash = "sha256:363795ea005f1243c958e953245dac5d814fabdc025c9afa91588c5fa6b2fa83"},
 ]
 markupsafe = [
     {file = "MarkupSafe-1.1.1-cp27-cp27m-macosx_10_6_intel.whl", hash = "sha256:09027a7803a62ca78792ad89403b1b7a73a01c8cb65909cd876f7fcebd79b161"},
