@@ -1,24 +1,27 @@
-import os
 import argparse
 import collections
 import json
 import logging
+import os
+import pathlib
 import random
 import shutil
 import tempfile
 import time
-import pathlib
-from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta
+from typing import List, Dict
 
+from langdetect import detect
 import pandas as pd
 
 from db_handler import DBHandler, Status, Tweet
 from log_handler import LogHandler
 from meta_data_handler import MetaDataHandler
 from twitter_handler import TwitterHandler
-from util import load_config, COUNTRIES, ECOUNTRY_ICOUNTRIES_MAP
+from util import load_config, COUNTRIES, SCORE_THRESHOLD, RUMOR_THRESHOLD, USEFUL_THRESHOLD, ITOPICS, \
+    ECOUNTRY_ICOUNTRIES_MAP
 
 logger = logging.getLogger(__file__)
 
@@ -46,10 +49,96 @@ def update_database(do_tweet: bool = False):
             if line_idx < offset:
                 continue
             try:
-                d = db_handler.upsert_page(json.loads(line))
+                d = json.loads(line)
             except json.decoder.JSONDecodeError:
                 continue
-            if d and do_tweet and d['status'] == Status.INSERTED and d['is_useful']:
+
+            if not d['orig']['title'] or not d['ja_translated']['title'] or not d['en_translated']['title']:
+                continue
+
+            if detect(d['ja_translated']['title']) != 'ja':
+                logger.warning(f'Skip {d["url"]}: Japanese title is not in Japanese.')
+                continue
+
+            if detect(d['en_translated']['title']) != 'en':
+                logger.warning(f'Skip {d["url"]}: English title is not in English.')
+                continue
+
+            def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
+                # Find a general snippet.
+                general_snippet = ''
+                for itopic in ITOPICS:
+                    if itopic in snippets:
+                        general_snippet = snippets[itopic][0] if snippets[itopic] else ''
+                        break
+
+                # Reshape snippets.
+                reshaped = {}
+                for itopic in ITOPICS:
+                    snippets_about_topic = snippets.get(itopic, [])
+                    if snippets_about_topic and snippets_about_topic[0]:
+                        reshaped[itopic] = snippets_about_topic[0].strip()
+                    else:
+                        reshaped[itopic] = general_snippet
+                return reshaped
+
+            is_about_covid_19: int = d['classes']['is_about_COVID-19']
+            country: str = d['country']
+            orig: Dict[str, str] = {
+                'title': d['orig']['title'].strip(),
+                'timestamp': d['orig']['timestamp'],
+                'simple_timestamp': datetime.fromisoformat(d['orig']['timestamp']).date().isoformat(),
+            }
+            ja_translated: Dict[str, str] = {
+                'title': d['ja_translated']['title'].strip(),
+                'timestamp': d['ja_translated']['timestamp'],
+            }
+            en_translated: Dict[str, str] = {
+                'title': d['en_translated']['title'].strip(),
+                'timestamp': d['en_translated']['timestamp'],
+            }
+            url: str = d['url']
+            topics_to_score: Dict[str, float] = {
+                key: value for key, value in d['classes_bert'].items() if key in ITOPICS and value > 0.5
+            }
+            topics: Dict[str, float] = dict()
+            for idx, (topic, score) in enumerate(sorted(topics_to_score.items(), key=lambda x: x[1], reverse=True)):
+                if idx == 0 or score > SCORE_THRESHOLD:
+                    topics[topic] = float(score)
+                else:
+                    break
+            ja_snippets = reshape_snippets(d['snippets'])
+            en_snippets = reshape_snippets(d['snippets_en'])
+
+            is_checked = 0
+            is_useful = 1 if d['classes_bert']['is_useful'] > USEFUL_THRESHOLD else 0
+            is_clear = d['classes']['is_clear']
+            is_about_false_rumor = 1 if d['classes_bert']['is_about_false_rumor'] > RUMOR_THRESHOLD else 0
+
+            domain = d.get('domain', '')
+            ja_domain_label = d.get('domain_label', '')
+            en_domain_label = d.get('domain_label_en', '')
+            r = db_handler.upsert_page({
+                'country': country,
+                'displayed_country': country,
+                'orig': orig,
+                'ja_translated': ja_translated,
+                'en_translated': en_translated,
+                'url': url,
+                'topics': topics,
+                'ja_snippets': ja_snippets,
+                'en_snippets': en_snippets,
+                'is_checked': is_checked,
+                'is_hidden': 0,
+                'is_about_COVID-19': is_about_covid_19,
+                'is_useful': is_useful,
+                'is_clear': is_clear,
+                'is_about_false_rumor': is_about_false_rumor,
+                'domain': domain,
+                'ja_domain_label': ja_domain_label,
+                'en_domain_label': en_domain_label
+            })
+            if r and do_tweet and r['status'] == Status.INSERTED and r['is_useful']:
                 maybe_tweeted_ds.append(d)
         line_num = line_idx
     with open(cache_file, 'w') as f:
