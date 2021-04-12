@@ -57,8 +57,8 @@ COUNTRIES = [
     {
         "country": "us",
         "name": {
-            "ja": "アメリカ",
-            "en": "United States"
+            "ja": "USA",
+            "en": "USA"
         },
         "dataRepository": ["US"],
         "language": "en",
@@ -80,7 +80,7 @@ COUNTRIES = [
     {
         "country": "asia",
         "name": {
-            "ja": "アジア (日本・中国を除く)",
+            "ja": "アジア (日本・中国以外)",
             "en": "Asia (other than Japan & China)"
         },
         "dataRepository": ["Indonesia", "India", "Korea, South", "Thailand", "Vietnam", "Singapore", "Philippines",
@@ -95,8 +95,8 @@ COUNTRIES = [
     {
         "country": "sa",
         "name": {
-            "ja": "南アメリカ",
-            "en": "South America"
+            "ja": "アメリカ（USA以外）",
+            "en": "America (other than USA)"
         },
         "dataRepository": ["Brazil", "Argentina", "Colombia", "Peru", "Chile", "Ecuador", "Bolivia", "Venezuela",
                            "Guyana", "Uruguay", "Suriname", "Paraguay"],
@@ -149,7 +149,7 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     'us': ['us', 'us_other'],
     'eur': ['eur', 'eu', 'fr', 'gb', 'es', 'de', 'eur_other'],
     'asia': ['asia', 'kr', 'id', 'in', 'np', 'my', 'sg', 'asia_other'],
-    'sa': ['sa', 'br', 'sa_other'],
+    'sa': ['sa', 'br', 'mx', 'sa_other'],
     'oceania': ['au', 'oceania_other'],
     'africa': ['za', 'africa_other'],
     'int': ['int', 'int_other']
