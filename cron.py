@@ -139,7 +139,7 @@ def update_database(do_tweet: bool = False):
                 'en_domain_label': en_domain_label
             })
             if r and do_tweet and r['status'] == Status.INSERTED and r['is_useful']:
-                maybe_tweeted_ds.append(d)
+                maybe_tweeted_ds.append(r)
         line_num = line_idx
     with open(cache_file, 'w') as f:
         f.write(f'{line_num}')
