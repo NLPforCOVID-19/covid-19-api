@@ -2,14 +2,13 @@ import json
 import os
 from typing import List
 
-TOPIC_CHECK_LOG = 'category_check.txt'
-FEEDBACK_LOG = 'feedback.txt'
-PAGE_NUMBER_LOG = 'update.txt'
-TWEET_NUMBER_LOG = 'tweet.txt'
+TOPIC_CHECK_LOG = "category_check.txt"
+FEEDBACK_LOG = "feedback.txt"
+PAGE_NUMBER_LOG = "update.txt"
+TWEET_NUMBER_LOG = "tweet.txt"
 
 
 class LogHandler:
-
     def __init__(self, log_dir: str):
         self.log_dir = log_dir
 
@@ -27,21 +26,21 @@ class LogHandler:
 
     @staticmethod
     def extend_log(path: str, lines: List[str]):
-        with open(path, 'a') as f:
+        with open(path, "a") as f:
             for line in lines:
-                f.write(line + '\n')
+                f.write(line + "\n")
 
     def find_topic_check_log(self, url: str):
         path = os.path.join(self.log_dir, TOPIC_CHECK_LOG)
         with open(path) as f:
             for line in reversed(f.readlines()):
-                if line.strip() == '':
+                if line.strip() == "":
                     break
                 edited_info = json.loads(line)
-                if edited_info.get('url', '') == url:
-                    edited_info['is_checked'] = 1
+                if edited_info.get("url", "") == url:
+                    edited_info["is_checked"] = 1
                     return edited_info
-        return {'url': url, 'is_checked': 0}
+        return {"url": url, "is_checked": 0}
 
     def iterate_topic_check_log(self):
         path = os.path.join(self.log_dir, TOPIC_CHECK_LOG)
