@@ -56,12 +56,15 @@ def update_database(do_tweet: bool = False):
             if not d['orig']['title'] or not d['ja_translated']['title'] or not d['en_translated']['title']:
                 continue
 
-            if detect(d['ja_translated']['title']) != 'ja':
-                logger.warning(f'Skip {d["url"]}: Japanese title is not in Japanese.')
-                continue
-
-            if detect(d['en_translated']['title']) != 'en':
-                logger.warning(f'Skip {d["url"]}: English title is not in English.')
+            try:
+                if detect(d['ja_translated']['title']) != 'ja':
+                    logger.warning(f'Skip {d["url"]}: Japanese title is not in Japanese.')
+                    continue
+                if detect(d['en_translated']['title']) != 'en':
+                    logger.warning(f'Skip {d["url"]}: English title is not in English.')
+                    continue
+            except Exception as e:
+                logger.warning(f'Error when detecting the language: {e}')
                 continue
 
             def reshape_snippets(snippets: Dict[str, List[str]]) -> Dict[str, str]:
