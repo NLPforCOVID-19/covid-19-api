@@ -124,7 +124,7 @@ def update_database(do_tweet: bool = False):
                 if key in ITOPICS and value > 0.5
             }
             if d["classes_kwd"].get("オリンピック", 0) == 1:
-                topics_to_score["オリンピック"] = 1
+                topics_to_score["オリンピック"] = 1.0
             topics: Dict[str, float] = dict()
             for idx, (topic, score) in enumerate(
                 sorted(topics_to_score.items(), key=lambda x: x[1], reverse=True)
