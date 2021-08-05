@@ -222,7 +222,7 @@ ECOUNTRY_ICOUNTRIES_MAP = {
     "jp": ["jp"],
     "cn": ["cn"],
     "us": ["us", "us_other"],
-    "eur": ["eur", "eu", "fr", "gb", "es", "de", "ru", "eur_other"],
+    "eur": ["eur", "eu", "fr", "gb", "es", "de", "it", "ru", "eur_other"],
     "asia": ["asia", "kr", "id", "in", "np", "my", "sg", "af", "asia_other"],
     "sa": ["sa", "br", "mx", "sa_other"],
     "oceania": ["au", "oceania_other"],
