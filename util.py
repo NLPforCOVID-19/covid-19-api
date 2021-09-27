@@ -15,7 +15,7 @@ TOPICS = [
     },
     {"ja": "経済・福祉政策", "en": "Economic and welfare policies"},
     {"ja": "教育関連", "en": "Education"},
-    {"ja": "オリンピック", "en": "Olympics and Paralympics"},
+    # {"ja": "オリンピック", "en": "Olympics and Paralympics"},
     {"ja": "その他", "en": "Other"},
 ]
 
@@ -253,7 +253,7 @@ ETOPIC_ITOPICS_MAP = {
     "症状・治療・ワクチンなど医療情報": ["症状・治療・検査など医療情報"],
     "経済・福祉政策": ["経済・福祉政策"],
     "教育関連": ["休校・オンライン授業"],
-    "オリンピック": ["オリンピック"],
+    # "オリンピック": ["オリンピック"],
     "その他": ["その他", "芸能・スポーツ"],
 }
 
