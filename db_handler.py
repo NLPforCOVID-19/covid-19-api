@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Union, Optional
@@ -181,7 +181,7 @@ class DBHandler:
         return reshaped_pages
 
     def get_articles(
-        self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str
+        self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str, sentiment: bool = False
     ):
         # Utility functions.
         def get_sort(itopics_: List[str] = None):
@@ -286,6 +286,14 @@ class DBHandler:
         icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
 
         filters = [{"$and": [{"page.is_about_COVID-19": 1}, {"page.is_hidden": 0}]}]
+        if sentiment:
+            sentiment_threshold = 0.9
+            timestamp_threshold = datetime.now() - timedelta(days=30)
+
+            filters += [
+                {"$and": [{"page.sentiment": {"$exists": True}}, {"page.sentiment": {"$gte": sentiment_threshold}}]},
+                {"page.orig.timestamp": {"$gte": timestamp_threshold.isoformat()}}
+            ]
         if itopics:
             filters += [
                 {
@@ -299,11 +307,18 @@ class DBHandler:
             filters += [{"page.displayed_country": {"$in": icountries}}]
         filter_ = {"$and": filters}
         sort_ = get_sort(itopics)
+        if sentiment:
+            sort_.insert(1, ("page.sentiment", DESCENDING))
         cur = self.article_coll.find(filter=filter_, sort=sort_)
         reshaped_articles = [
             reshape_article(doc["page"]) for doc in cur.skip(start).limit(limit)
         ]
         return reshaped_articles
+
+    def get_positive_articles(self, lang:str, query: str):
+        etopic = None
+        ecountry = None
+        return self.get_articles(etopic, ecountry, 0, 5, lang, "", sentiment=True)
 
     def get_tweets_sorted_by_topic(
         self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str

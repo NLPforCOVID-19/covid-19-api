@@ -146,6 +146,7 @@ def update_database(do_tweet: bool = False):
             domain = d.get("domain", "")
             ja_domain_label = d.get("domain_label", "")
             en_domain_label = d.get("domain_label_en", "")
+            sentiment = d.get("sentiment") if "sentiment" in d else 0.0
             r = db_handler.upsert_page(
                 {
                     "country": country,
@@ -166,6 +167,7 @@ def update_database(do_tweet: bool = False):
                     "domain": domain,
                     "ja_domain_label": ja_domain_label,
                     "en_domain_label": en_domain_label,
+                    "sentiment": sentiment
                 }
             )
             if r and do_tweet and r["status"] == Status.INSERTED and r["is_useful"]:

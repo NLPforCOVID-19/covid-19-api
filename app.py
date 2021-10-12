@@ -112,6 +112,11 @@ def articles_sorted_by_country(country=None, topic=None):
     return jsonify(ret)
 
 
+@app.route("/positive_articles")
+def positive_articles():
+    ret = db_handler.get_positive_articles(get_lang(), get_query())
+    return jsonify(ret)
+
 @app.route("/tweets/topic")
 @app.route("/tweets/topic/<topic>")
 @app.route("/tweets/topic/<topic>/<country>")
