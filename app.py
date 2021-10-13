@@ -113,8 +113,10 @@ def articles_sorted_by_country(country=None, topic=None):
 
 
 @app.route("/positive_articles")
-def positive_articles():
-    ret = db_handler.get_positive_articles(get_lang(), get_query())
+@app.route("/positive_articles/country/<country>")
+@app.route("/positive_articles/topic/<topic>")
+def positive_articles(topic=None, country=None):
+    ret = db_handler.get_positive_articles(topic, country, get_lang(), get_query())
     return jsonify(ret)
 
 @app.route("/tweets/topic")

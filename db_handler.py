@@ -286,14 +286,7 @@ class DBHandler:
         icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
 
         filters = [{"$and": [{"page.is_about_COVID-19": 1}, {"page.is_hidden": 0}]}]
-        if sentiment:
-            sentiment_threshold = 0.9
-            timestamp_threshold = datetime.now() - timedelta(days=30)
 
-            filters += [
-                {"$and": [{"page.sentiment": {"$exists": True}}, {"page.sentiment": {"$gte": sentiment_threshold}}]},
-                {"page.orig.timestamp": {"$gte": timestamp_threshold.isoformat()}}
-            ]
         if itopics:
             filters += [
                 {
@@ -305,6 +298,15 @@ class DBHandler:
             ]
         if ecountry:
             filters += [{"page.displayed_country": {"$in": icountries}}]
+        if sentiment:
+            sentiment_threshold = 0.9
+            timestamp_threshold = datetime.now() - timedelta(days=30)
+
+            filters += [
+                {"page.sentiment": {"$exists": True}},
+                {"page.sentiment": {"$gte": sentiment_threshold}},
+                {"page.orig.timestamp": {"$gte": timestamp_threshold.isoformat()}}
+            ]
         filter_ = {"$and": filters}
         sort_ = get_sort(itopics)
         if sentiment:
@@ -315,9 +317,7 @@ class DBHandler:
         ]
         return reshaped_articles
 
-    def get_positive_articles(self, lang:str, query: str):
-        etopic = None
-        ecountry = None
+    def get_positive_articles(self, etopic: str, ecountry: str, lang:str, query: str):
         return self.get_articles(etopic, ecountry, 0, 5, lang, "", sentiment=True)
 
     def get_tweets_sorted_by_topic(
