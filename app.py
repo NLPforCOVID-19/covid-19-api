@@ -119,6 +119,7 @@ def positive_articles(topic=None, country=None):
     ret = db_handler.get_positive_articles(topic, country, get_lang(), get_query())
     return jsonify(ret)
 
+
 @app.route("/tweets/topic")
 @app.route("/tweets/topic/<topic>")
 @app.route("/tweets/topic/<topic>/<country>")
