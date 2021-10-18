@@ -318,6 +318,7 @@ class DBHandler:
         return reshaped_articles
 
     def get_positive_articles(self, etopic: str, ecountry: str, lang: str, query: str):
+        etopic = ETOPIC_TRANS_MAP.get((etopic, "ja"), etopic)
         return self.get_articles(etopic, ecountry, 0, 5, lang, "", sentiment=True)
 
     def get_tweets_sorted_by_topic(
