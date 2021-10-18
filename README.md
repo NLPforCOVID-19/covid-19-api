@@ -169,6 +169,12 @@ One `<article-information>` is like:
 ### [GET] /articles/country/\<country\>
 ### [GET] /articles/country/\<country\>/\<topic\>
 
+### [GET] /positive_articles
+### [GET] /positive_articles/country/\<country\>
+### [GET] /positive_articles/topic/\<topic\>
+
+Returns up to 5 top rated recent articles for the specified country or topic.
+
 ### [GET] /tweets/topic
 
 Return tweets sorted by topics. **No topic information is available at the moment. Only special topics, `all` and `search`, are valid.**
