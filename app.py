@@ -153,6 +153,7 @@ def update():
         is_about_covid_19=data.get("is_about_COVID-19"),
         is_useful=data.get("is_useful"),
         is_about_false_rumor=data.get("is_about_false_rumor"),
+        is_positive=data.get("is_positive"),
         icountry=data.get("new_displayed_country"),
         etopics=data.get("new_classes"),
         notes=han_to_zen(str(data.get("notes"))),

@@ -193,6 +193,7 @@ def update_database(do_tweet: bool = False):
                     "page.is_about_COVID-19": log["is_about_COVID-19"],
                     "page.is_useful": log["is_useful"],
                     "page.is_about_false_rumor": log.get("is_about_false_rumor", 0),
+                    "page.is_positive": log.get("is_positive", 1),
                     "page.is_checked": 1,
                     "page.is_hidden": log.get("is_hidden", 0),
                     "page.displayed_country": log["new_country"],
