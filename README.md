@@ -250,6 +250,19 @@ One `<tweet-information>` is like:
 ### [GET] /tweets/country/\<country\>
 ### [GET] /tweets/country/\<country\>/\<topic\>
 
+### [GET] /history
+
+### [POST] /feedback
+
+### [POST] /update
+
+- Example value
+
+```json
+{"url":"https://www.france24.com/fr/info-en-continu/20211018-wall-street-finit-sur-une-note-contrast%C3%A9e-entre-croissance-molle-et-bons-r%C3%A9sultats-d-entreprises","new_displayed_country":"fr","new_classes":["経済・福祉政策"],"is_hidden":false,"is_useful":false,"is_about_COVID-19":false,"is_about_false_rumor":false,"is_positive":true,"notes":"NG","password":"*****"}
+```
+
+
 ## Developer Guides
 
 ### Setup
