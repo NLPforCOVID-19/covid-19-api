@@ -303,7 +303,7 @@ class DBHandler:
             timestamp_threshold = datetime.now() - timedelta(days=30)
 
             filters += [
-                {"$or": [{"page.is_positive": {"$exists": False}},{"page.is_positive": 1}]},
+                {"$or": [{"page.is_positive": {"$exists": False}}, {"page.is_positive": 1}]},
                 {"page.sentiment": {"$exists": True}},
                 {"page.sentiment": {"$gte": sentiment_threshold}},
                 {"page.orig.timestamp": {"$gte": timestamp_threshold.isoformat()}}
