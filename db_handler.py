@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Union, Optional
@@ -181,7 +181,7 @@ class DBHandler:
         return reshaped_pages
 
     def get_articles(
-        self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str
+        self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str, sentiment: bool = False
     ):
         # Utility functions.
         def get_sort(itopics_: List[str] = None):
@@ -286,6 +286,7 @@ class DBHandler:
         icountries = ECOUNTRY_ICOUNTRIES_MAP.get(ecountry, [])
 
         filters = [{"$and": [{"page.is_about_COVID-19": 1}, {"page.is_hidden": 0}]}]
+
         if itopics:
             filters += [
                 {
@@ -297,13 +298,33 @@ class DBHandler:
             ]
         if ecountry:
             filters += [{"page.displayed_country": {"$in": icountries}}]
+        if sentiment:
+            sentiment_threshold = 0.9
+            timestamp_threshold = datetime.now() - timedelta(days=30)
+
+            filters += [
+                {"$or": [{"page.is_positive": {"$exists": False}}, {"page.is_positive": 1}]},
+                {"page.sentiment": {"$exists": True}},
+                {"page.sentiment": {"$gte": sentiment_threshold}},
+                {"page.orig.timestamp": {"$gte": timestamp_threshold.isoformat()}}
+            ]
         filter_ = {"$and": filters}
         sort_ = get_sort(itopics)
+        if sentiment:
+            sort_.insert(1, ("page.sentiment", DESCENDING))
         cur = self.article_coll.find(filter=filter_, sort=sort_)
         reshaped_articles = [
             reshape_article(doc["page"]) for doc in cur.skip(start).limit(limit)
         ]
         return reshaped_articles
+
+    def get_positive_articles(self, etopic: str, ecountry: str, lang: str, query: str):
+        if etopic is None:
+            etopic = "all"
+        if ecountry is None:
+            ecountry = "all"
+        etopic = ETOPIC_TRANS_MAP.get((etopic, "ja"), etopic)
+        return self.get_articles(etopic, ecountry, 0, 5, lang, "", sentiment=True)
 
     def get_tweets_sorted_by_topic(
         self, etopic: str, ecountry: str, start: int, limit: int, lang: str, query: str
@@ -439,6 +460,7 @@ class DBHandler:
         is_about_covid_19: bool,
         is_useful: bool,
         is_about_false_rumor: bool,
+        is_positive: bool,
         icountry: str,
         etopics: List[str],
         notes: str,
@@ -447,6 +469,7 @@ class DBHandler:
         new_is_about_covid_19 = 1 if is_about_covid_19 else 0
         new_is_useful = 1 if is_useful else 0
         new_is_about_false_rumor = 1 if is_about_false_rumor else 0
+        new_is_positive = 1 if is_positive else 0
         new_etopics = {ETOPIC_ITOPICS_MAP[etopic][0]: 1.0 for etopic in etopics}
 
         self.article_coll.update_one(
@@ -457,6 +480,7 @@ class DBHandler:
                     "page.is_about_COVID-19": new_is_about_covid_19,
                     "page.is_useful": new_is_useful,
                     "page.is_about_false_rumor": new_is_about_false_rumor,
+                    "page.is_positive": new_is_positive,
                     "page.is_checked": 1,
                     "page.displayed_country": icountry,
                     "page.topics": new_etopics,
@@ -470,6 +494,7 @@ class DBHandler:
             "is_about_COVID-19": new_is_about_covid_19,
             "is_useful": new_is_useful,
             "is_about_false_rumor": new_is_about_false_rumor,
+            "is_positive": new_is_positive,
             "new_country": icountry,
             "new_topics": list(new_etopics.keys()),
             "notes": notes,
