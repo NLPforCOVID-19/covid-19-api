@@ -169,6 +169,12 @@ One `<article-information>` is like:
 ### [GET] /articles/country/\<country\>
 ### [GET] /articles/country/\<country\>/\<topic\>
 
+### [GET] /positive_articles
+### [GET] /positive_articles/country/\<country\>
+### [GET] /positive_articles/topic/\<topic\>
+
+Returns up to 5 top rated recent articles for the specified country or topic.
+
 ### [GET] /tweets/topic
 
 Return tweets sorted by topics. **No topic information is available at the moment. Only special topics, `all` and `search`, are valid.**
@@ -243,6 +249,19 @@ One `<tweet-information>` is like:
 ### [GET] /tweets/country
 ### [GET] /tweets/country/\<country\>
 ### [GET] /tweets/country/\<country\>/\<topic\>
+
+### [GET] /history
+
+### [POST] /feedback
+
+### [POST] /update
+
+- Example value
+
+```json
+{"url":"https://www.france24.com/fr/info-en-continu/20211018-wall-street-finit-sur-une-note-contrast%C3%A9e-entre-croissance-molle-et-bons-r%C3%A9sultats-d-entreprises","new_displayed_country":"fr","new_classes":["経済・福祉政策"],"is_hidden":false,"is_useful":false,"is_about_COVID-19":false,"is_about_false_rumor":false,"is_positive":true,"notes":"NG","password":"*****"}
+```
+
 
 ## Developer Guides
 

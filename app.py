@@ -112,6 +112,14 @@ def articles_sorted_by_country(country=None, topic=None):
     return jsonify(ret)
 
 
+@app.route("/positive_articles")
+@app.route("/positive_articles/country/<country>")
+@app.route("/positive_articles/topic/<topic>")
+def positive_articles(topic=None, country=None):
+    ret = db_handler.get_positive_articles(topic, country, get_lang(), get_query())
+    return jsonify(ret)
+
+
 @app.route("/tweets/topic")
 @app.route("/tweets/topic/<topic>")
 @app.route("/tweets/topic/<topic>/<country>")
@@ -145,6 +153,7 @@ def update():
         is_about_covid_19=data.get("is_about_COVID-19"),
         is_useful=data.get("is_useful"),
         is_about_false_rumor=data.get("is_about_false_rumor"),
+        is_positive=data.get("is_positive"),
         icountry=data.get("new_displayed_country"),
         etopics=data.get("new_classes"),
         notes=han_to_zen(str(data.get("notes"))),
