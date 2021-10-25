@@ -146,7 +146,7 @@ def update_database(do_tweet: bool = False):
             domain = d.get("domain", "")
             ja_domain_label = d.get("domain_label", "")
             en_domain_label = d.get("domain_label_en", "")
-            sentiment = d.get("sentiment") if "sentiment" in d else 0.0
+            sentiment = d.get("sentiment", 0.0)
             r = db_handler.upsert_page(
                 {
                     "country": country,
