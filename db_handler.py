@@ -288,11 +288,18 @@ class DBHandler:
         filters = [{"$and": [{"page.is_about_COVID-19": 1}, {"page.is_hidden": 0}]}]
 
         if itopics:
+            temp_itopics = itopics[:]
+
+            # Hide articles about 感染状況 unless the selected topic is 感染状況 explicitly when
+            # retrieving articles for the positive news.
+            if sentiment and temp_itopics != ['感染状況'] and '感染状況' in temp_itopics:
+                temp_itopics.remove('感染状況')
+
             filters += [
                 {
                     "$or": [
                         {f"page.topics.{itopic}": {"$exists": True}}
-                        for itopic in itopics
+                        for itopic in temp_itopics
                     ]
                 }
             ]
