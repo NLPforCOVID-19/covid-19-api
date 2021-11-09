@@ -26,6 +26,7 @@ from util import (
     SCORE_THRESHOLD,
     RUMOR_THRESHOLD,
     USEFUL_THRESHOLD,
+    SENTIMENT_THRESHOLD,
     ITOPICS,
     ECOUNTRY_ICOUNTRIES_MAP,
 )
@@ -147,6 +148,7 @@ def update_database(do_tweet: bool = False):
             ja_domain_label = d.get("domain_label", "")
             en_domain_label = d.get("domain_label_en", "")
             sentiment = d.get("sentiment", 0.0)
+            is_positive = 1 if sentiment >= SENTIMENT_THRESHOLD else 0
             r = db_handler.upsert_page(
                 {
                     "country": country,
@@ -167,7 +169,8 @@ def update_database(do_tweet: bool = False):
                     "domain": domain,
                     "ja_domain_label": ja_domain_label,
                     "en_domain_label": en_domain_label,
-                    "sentiment": sentiment
+                    "sentiment": sentiment,
+                    "is_positive": is_positive
                 }
             )
             if r and do_tweet and r["status"] == Status.INSERTED and r["is_useful"]:
