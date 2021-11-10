@@ -7,6 +7,7 @@ RUMOR_THRESHOLD = 0.92
 USEFUL_THRESHOLD = 0.9
 SENTIMENT_THRESHOLD = 0.9 # is_positive flag
 
+
 TOPICS = [
     {"ja": "感染状況", "en": "Current state of infection"},
     {"ja": "予防・防疫・規制", "en": "Prevention and regulation"},
