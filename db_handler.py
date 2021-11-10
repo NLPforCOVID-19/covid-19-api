@@ -13,6 +13,7 @@ from util import (
     ECOUNTRY_ICOUNTRIES_MAP,
     ETOPIC_TRANS_MAP,
     ECOUNTRY_TRANS_MAP,
+    SENTIMENT_THRESHOLD
 )
 
 
@@ -306,13 +307,12 @@ class DBHandler:
         if ecountry:
             filters += [{"page.displayed_country": {"$in": icountries}}]
         if sentiment:
-            sentiment_threshold = 0.9
             timestamp_threshold = datetime.now() - timedelta(days=30)
 
             filters += [
                 {"$or": [{"page.is_positive": {"$exists": False}}, {"page.is_positive": 1}]},
                 {"page.sentiment": {"$exists": True}},
-                {"page.sentiment": {"$gte": sentiment_threshold}},
+                {"page.sentiment": {"$gte": SENTIMENT_THRESHOLD}},
                 {"page.orig.timestamp": {"$gte": timestamp_threshold.isoformat()}}
             ]
         filter_ = {"$and": filters}
