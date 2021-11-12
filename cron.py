@@ -173,7 +173,7 @@ def update_database(do_tweet: bool = False):
                     "is_positive": is_positive
                 }
             )
-            if r and do_tweet and r["status"] == Status.INSERTED and r["is_useful"]:
+            if r and do_tweet and r["status"] == Status.INSERTED and r["is_positive"]:
                 maybe_tweeted_ds.append(r)
         line_num = line_idx
     with open(cache_file, "w") as f:
