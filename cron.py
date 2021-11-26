@@ -185,7 +185,8 @@ def update_database(do_tweet: bool = False):
 
     def remove_doublon_articles():
         doublons = {}
-        for doc in db_handler.article_coll.aggregate([{"$group": {"_id": "$page.url", "count":{"$sum":1}}}, {"$match": {"count": {"$gt": 1}}}]):
+        for doc in db_handler.article_coll.aggregate(
+                [{"$group": {"_id": "$page.url", "count": {"$sum": 1}}}, {"$match": {"count": {"$gt": 1}}}]):
             doublons[doc["_id"]] = doc["count"]
 
         ids_to_remove = []
