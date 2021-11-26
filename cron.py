@@ -183,6 +183,24 @@ def update_database(do_tweet: bool = False):
         [f"{time.asctime()}:The number of pages is {num_docs}."]
     )
 
+    def remove_doublon_articles():
+        doublons = {}
+        for doc in db_handler.article_coll.aggregate(
+                [{"$group": {"_id": "$page.url", "count": {"$sum": 1}}}, {"$match": {"count": {"$gt": 1}}}]):
+            doublons[doc["_id"]] = doc["count"]
+
+        ids_to_remove = []
+        for url in doublons:
+            for index, doc in enumerate(db_handler.article_coll.find({"page.url": url})):
+                if index > 0:
+                    ids_to_remove.append(doc["_id"])
+        logger.debug(f"Remove doublon articles: {len(ids_to_remove)}")
+        if (len(ids_to_remove) > 0):
+            db_handler.article_coll.delete_many({"_id": {"$in": ids_to_remove}})
+
+    # For some unexplained reasons, we end up having documents with duplicate page.url values so fix that.
+    remove_doublon_articles()
+
     logger.debug("Add manually checked pages.")
     for line in log_handler.iterate_topic_check_log():
         log = json.loads(line)
