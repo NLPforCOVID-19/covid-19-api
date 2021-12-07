@@ -140,9 +140,7 @@ def update_database(do_tweet: bool = False):
             is_checked = 0
             is_useful = 1 if d["classes_bert"]["is_useful"] > USEFUL_THRESHOLD else 0
             is_clear = d["classes"]["is_clear"]
-            is_about_false_rumor = (
-                1 if d["classes_bert"]["is_about_false_rumor"] > RUMOR_THRESHOLD else 0
-            )
+            is_about_false_rumor = d.get("domain", "") == "fij.info"
 
             domain = d.get("domain", "")
             ja_domain_label = d.get("domain_label", "")
