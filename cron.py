@@ -146,7 +146,7 @@ def update_database(do_tweet: bool = False):
             ja_domain_label = d.get("domain_label", "")
             en_domain_label = d.get("domain_label_en", "")
             sentiment = d.get("sentiment", 0.0)
-            is_positive = 1 if sentiment >= SENTIMENT_THRESHOLD else 0
+            is_positive = 1 if sentiment >= SENTIMENT_THRESHOLD or is_about_false_rumor else 0
             r = db_handler.upsert_page(
                 {
                     "country": country,
