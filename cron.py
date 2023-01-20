@@ -239,12 +239,18 @@ def update_database(do_tweet: bool = False):
         paths = list(pathlib.Path(data_path).glob(glob_pat))
         logger.debug(f"Number of tweets: {len(paths)}")
         for path in paths:
-            with path.open() as f:
-                raw_data = json.load(f)
+            try:
+                with path.open() as f:
+                    raw_data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                continue
 
             meta_path = path.parent.joinpath(f"{path.stem}.metadata")
-            with meta_path.open() as f:
-                meta_data = json.load(f)
+            try:
+                with meta_path.open() as f:
+                    meta_data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                continue
 
             ja_path = pathlib.Path(
                 str(path).replace("orig", "ja_translated").replace(".json", ".txt")
